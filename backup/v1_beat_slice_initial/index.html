@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beat Slice: Pipipipi Edition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        #combo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #judgment {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #timer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 20px;
+            pointer-events: none;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            pointer-events: none;
+        }
+
+        #corsWarning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ff4444;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+        }
+
+        #corsWarning h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        #corsWarning p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        #corsWarning .solution {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .perfect { color: #00ff00; }
+        .good { color: #ffff00; }
+        .miss { color: #ff0000; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div id="score">Score: 0</div>
+            <div id="combo">0 combo</div>
+            <div id="judgment">READY</div>
+            <div id="timer">0:00</div>
+            <div id="loading">Loading...</div>
+            <div id="corsWarning">
+                <h2>⚠️ CORS エラー</h2>
+                <p>HTMLファイルを直接開いています。<br>
+                正しく動作させるにはローカルサーバーが必要です。</p>
+                
+                <div class="solution">
+                    <strong>解決方法:</strong><br>
+                    1. コマンドプロンプトでプロジェクトフォルダを開く<br>
+                    2. 以下のコマンドを実行:<br>
+                    <code>python3 -m http.server 8000</code><br>
+                    3. ブラウザで開く: <code>http://localhost:8000</code>
+                </div>
+                
+                <p>または <code>./start.sh</code> を実行してください</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>

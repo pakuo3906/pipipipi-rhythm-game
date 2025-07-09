@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beat Slice: Test Mode</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #111;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00ff00;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #222;
+            border-radius: 10px;
+        }
+
+        .test-section h2 {
+            color: #00ddff;
+            margin-top: 0;
+        }
+
+        .test-button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .test-button:hover {
+            background-color: #0088ff;
+        }
+
+        .success {
+            color: #00ff00;
+        }
+
+        .error {
+            color: #ff4444;
+        }
+
+        .warning {
+            color: #ffaa00;
+        }
+
+        .log {
+            background-color: #000;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        #gameCanvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 18px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Beat Slice: Test Mode</h1>
+        
+        <div class="test-section">
+            <h2>📋 システムチェック</h2>
+            <button class="test-button" onclick="runSystemCheck()">システムチェック実行</button>
+            <div id="systemCheckResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 譜面データテスト</h2>
+            <button class="test-button" onclick="testChartLoading()">譜面データ読み込みテスト</button>
+            <div id="chartTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎵 音楽システムテスト</h2>
+            <button class="test-button" onclick="testAudioSystem()">音楽システムテスト</button>
+            <div id="audioTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 3D描画テスト</h2>
+            <button class="test-button" onclick="testThreeJS()">Three.js テスト</button>
+            <canvas id="gameCanvas" width="600" height="400"></canvas>
+            <div id="threeTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🖱️ 入力システムテスト</h2>
+            <button class="test-button" onclick="testInputSystem()">入力システムテスト</button>
+            <div class="status" id="inputStatus">マウスを動かしてテストしてください</div>
+            <div id="inputTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🚀 フルゲームテスト</h2>
+            <button class="test-button" onclick="testFullGame()">フルゲームテスト</button>
+            <div id="fullGameResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 コンソールログ</h2>
+            <button class="test-button" onclick="clearLog()">ログクリア</button>
+            <div id="consoleLog" class="log"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+        import * as Tone from 'https://unpkg.com/tone@14.7.77/build/Tone.js';
+        
+        // コンソールログをキャプチャ
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        function addToLog(message, type = 'info') {
+            const logDiv = document.getElementById('consoleLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'warn' ? 'warning' : 'success';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToLog(args.join(' '), 'info');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToLog(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToLog(args.join(' '), 'warn');
+        };
+
+        // テスト関数
+        window.runSystemCheck = function() {
+            const result = document.getElementById('systemCheckResult');
+            result.innerHTML = '<div>システムチェック実行中...</div>';
+            
+            const checks = [];
+            
+            // プロトコルチェック
+            checks.push({
+                name: 'Protocol Check',
+                result: window.location.protocol === 'http:' || window.location.protocol === 'https:',
+                message: `Protocol: ${window.location.protocol}`
+            });
+            
+            // WebGLチェック
+            try {
+                const canvas = document.createElement('canvas');
+                const webgl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                checks.push({
+                    name: 'WebGL Support',
+                    result: !!webgl,
+                    message: webgl ? 'WebGL is supported' : 'WebGL is not supported'
+                });
+            } catch (e) {
+                checks.push({
+                    name: 'WebGL Support',
+                    result: false,
+                    message: 'WebGL check failed'
+                });
+            }
+            
+            // AudioContextチェック
+            checks.push({
+                name: 'Audio Context',
+                result: 'AudioContext' in window || 'webkitAudioContext' in window,
+                message: 'AudioContext' in window ? 'AudioContext supported' : 'AudioContext not supported'
+            });
+            
+            // ES6 Modulesチェック
+            checks.push({
+                name: 'ES6 Modules',
+                result: 'noModule' in HTMLScriptElement.prototype,
+                message: 'ES6 Modules supported'
+            });
+            
+            let html = '<div class="log">';
+            let allPassed = true;
+            
+            checks.forEach(check => {
+                const status = check.result ? '✅' : '❌';
+                const className = check.result ? 'success' : 'error';
+                html += `<div class="${className}">${status} ${check.name}: ${check.message}</div>`;
+                if (!check.result) allPassed = false;
+            });
+            
+            html += '</div>';
+            html += `<div class="status ${allPassed ? 'success' : 'error'}">
+                ${allPassed ? '✅ All system checks passed' : '❌ Some system checks failed'}
+            </div>`;
+            
+            result.innerHTML = html;
+            console.log('System check completed:', { allPassed, checks });
+        };
+
+        window.testChartLoading = async function() {
+            const result = document.getElementById('chartTestResult');
+            result.innerHTML = '<div>譜面データ読み込み中...</div>';
+            
+            try {
+                const response = await fetch('./pipipipi_shingou_chart.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const chartData = await response.json();
+                
+                result.innerHTML = `
+                    <div class="success">✅ 譜面データ読み込み成功</div>
+                    <div class="log">
+                        <div>Title: ${chartData.songInfo.title}</div>
+                        <div>Artist: ${chartData.songInfo.artist}</div>
+                        <div>Duration: ${chartData.songInfo.duration}s</div>
+                        <div>BPM: ${chartData.songInfo.bpm}</div>
+                        <div>Notes: ${chartData.chart.length}</div>
+                    </div>
+                `;
+                console.log('Chart loading test passed:', chartData.songInfo);
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ 譜面データ読み込み失敗: ${error.message}</div>`;
+                console.error('Chart loading test failed:', error);
+            }
+        };
+
+        window.testAudioSystem = async function() {
+            const result = document.getElementById('audioTestResult');
+            result.innerHTML = '<div>音楽システムテスト中...</div>';
+            
+            try {
+                await Tone.start();
+                
+                // 音楽ファイルの存在確認
+                let audioExists = false;
+                try {
+                    const response = await fetch('./ぴぴぴ… しんごう….mp3', { method: 'HEAD' });
+                    audioExists = response.ok;
+                } catch (e) {
+                    audioExists = false;
+                }
+                
+                result.innerHTML = `
+                    <div class="success">✅ Tone.js 初期化成功</div>
+                    <div class="log">
+                        <div>Audio Context State: ${Tone.context.state}</div>
+                        <div>Sample Rate: ${Tone.context.sampleRate}Hz</div>
+                        <div>音楽ファイル: ${audioExists ? '✅ 存在' : '❌ 未発見'}</div>
+                    </div>
+                `;
+                console.log('Audio system test passed');
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ 音楽システムテスト失敗: ${error.message}</div>`;
+                console.error('Audio system test failed:', error);
+            }
+        };
+
+        window.testThreeJS = function() {
+            const result = document.getElementById('threeTestResult');
+            const canvas = document.getElementById('gameCanvas');
+            
+            try {
+                // Three.js基本設定
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ canvas: canvas });
+                
+                renderer.setSize(canvas.width, canvas.height);
+                scene.background = new THREE.Color(0x001122);
+                
+                // ライト
+                const light = new THREE.DirectionalLight(0xffffff, 1);
+                light.position.set(5, 5, 5);
+                scene.add(light);
+                
+                // テスト用のキューブ
+                const geometry = new THREE.BoxGeometry();
+                const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+                const cube = new THREE.Mesh(geometry, material);
+                scene.add(cube);
+                
+                camera.position.z = 5;
+                
+                // アニメーション
+                function animate() {
+                    requestAnimationFrame(animate);
+                    cube.rotation.x += 0.01;
+                    cube.rotation.y += 0.01;
+                    renderer.render(scene, camera);
+                }
+                animate();
+                
+                result.innerHTML = `
+                    <div class="success">✅ Three.js テスト成功</div>
+                    <div class="log">
+                        <div>Renderer: ${renderer.info.render.triangles} triangles</div>
+                        <div>WebGL Version: ${renderer.capabilities.glVersion}</div>
+                    </div>
+                `;
+                console.log('Three.js test passed');
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ Three.js テスト失敗: ${error.message}</div>`;
+                console.error('Three.js test failed:', error);
+            }
+        };
+
+        window.testInputSystem = function() {
+            const result = document.getElementById('inputTestResult');
+            const status = document.getElementById('inputStatus');
+            
+            let mouseData = {
+                position: { x: 0, y: 0 },
+                velocity: { x: 0, y: 0 },
+                lastPosition: { x: 0, y: 0 },
+                speed: 0
+            };
+            
+            function updateMouseData(e) {
+                mouseData.lastPosition = { ...mouseData.position };
+                mouseData.position = { x: e.clientX, y: e.clientY };
+                
+                const deltaX = mouseData.position.x - mouseData.lastPosition.x;
+                const deltaY = mouseData.position.y - mouseData.lastPosition.y;
+                mouseData.velocity = { x: deltaX, y: deltaY };
+                mouseData.speed = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                status.innerHTML = `
+                    Position: (${mouseData.position.x}, ${mouseData.position.y}) | 
+                    Velocity: (${mouseData.velocity.x.toFixed(1)}, ${mouseData.velocity.y.toFixed(1)}) | 
+                    Speed: ${mouseData.speed.toFixed(1)}px/frame
+                `;
+            }
+            
+            document.addEventListener('mousemove', updateMouseData);
+            
+            result.innerHTML = `
+                <div class="success">✅ 入力システムテスト開始</div>
+                <div class="log">マウスを動かして入力をテストしてください</div>
+            `;
+            console.log('Input system test started');
+        };
+
+        window.testFullGame = async function() {
+            const result = document.getElementById('fullGameResult');
+            result.innerHTML = '<div>フルゲームテスト中...</div>';
+            
+            try {
+                // フルゲームの初期化をテスト
+                const { GameEngine } = await import('./src/engine/GameEngine.js');
+                const { ChartLoader } = await import('./src/utils/ChartLoader.js');
+                
+                const chartData = await ChartLoader.load('./pipipipi_shingou_chart.json');
+                const canvas = document.getElementById('gameCanvas');
+                const gameEngine = new GameEngine(canvas, chartData);
+                
+                await gameEngine.init();
+                
+                result.innerHTML = `
+                    <div class="success">✅ フルゲームテスト成功</div>
+                    <div class="log">
+                        <div>Game Engine: 初期化完了</div>
+                        <div>Chart: ${chartData.chart.length} notes loaded</div>
+                        <div>Audio: ${gameEngine.audioSync.isLoaded ? '読み込み完了' : '読み込み中'}</div>
+                    </div>
+                `;
+                console.log('Full game test passed');
+                
+                // 自動的にゲームを開始
+                setTimeout(() => {
+                    gameEngine.startGame();
+                }, 2000);
+                
+            } catch (error) {
+                result.innerHTML = `<div class="error">❌ フルゲームテスト失敗: ${error.message}</div>`;
+                console.error('Full game test failed:', error);
+            }
+        };
+
+        window.clearLog = function() {
+            document.getElementById('consoleLog').innerHTML = '';
+        };
+
+        // 初期化時にシステムチェックを実行
+        window.addEventListener('load', () => {
+            console.log('🎮 Beat Slice Test Mode loaded');
+            runSystemCheck();
+        });
+    </script>
+</body>
+</html>

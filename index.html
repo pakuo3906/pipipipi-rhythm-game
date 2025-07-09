@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipipipi Rhythm Game</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
+            max-height: 600px;
+        }
+
+        #gameCanvas {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .combo-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .start-screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .start-screen p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .start-btn {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .judgment-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .judgment-perfect { color: #ffeb3b; }
+        .judgment-good { color: #4caf50; }
+        .judgment-miss { color: #f44336; }
+
+        @media (max-width: 768px) {
+            .game-container {
+                max-width: 100%;
+                max-height: 100%;
+            }
+            
+            .start-screen h1 {
+                font-size: 32px;
+            }
+            
+            .start-screen p {
+                font-size: 16px;
+                padding: 0 20px;
+            }
+            
+            .score-display, .combo-display {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="ui-overlay">
+            <div class="score-display">
+                Score: <span id="scoreValue">0</span>
+            </div>
+            <div class="combo-display">
+                Combo: <span id="comboValue">0</span>
+            </div>
+            <div class="judgment-display" id="judgmentDisplay"></div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="pauseBtn">Pause</button>
+            <button class="control-btn" id="retryBtn">Retry</button>
+            <div class="volume-control" style="display: flex; align-items: center; gap: 10px; margin-left: 20px;">
+                <span style="font-size: 14px;">🔊</span>
+                <input type="range" id="volumeSlider" min="0" max="100" value="70" 
+                       style="width: 80px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px;">
+            </div>
+        </div>
+
+        <div class="start-screen" id="startScreen">
+            <h1>🎵 Pipipipi Rhythm 🎵</h1>
+            <p>
+                音楽に合わせて3つのレーンをタップしよう！<br>
+                <strong>A</strong>（左）、<strong>S</strong>（中央）、<strong>D</strong>（右）キーまたは画面をタップ<br>
+                リッチなエフェクトで最高のリズム体験を楽しんで！
+            </p>
+            <button class="start-btn" id="startBtn">ゲームスタート</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
