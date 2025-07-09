@@ -253,7 +253,12 @@
                 };
                 
                 this.keys = { 'KeyA': 0, 'KeyS': 1, 'KeyD': 2 };
-                this.effects = { ripples: [], backgroundPulse: 0, laneGlow: [0, 0, 0] };
+                this.effects = { 
+                    ripples: [], 
+                    backgroundPulse: 0, 
+                    laneGlow: [0, 0, 0],
+                    goodDots: []
+                };
                 
                 this.init();
             }
@@ -433,61 +438,60 @@
                 note.hit = true;
                 this.score += points * (1 + this.combo * 0.1);
                 
-                this.addRipple(note.lane, judgment);
-                this.addParticles(note.lane, judgment);
+                // エフェクト (missの場合は何もしない)
+                if (judgment !== 'miss') {
+                    this.addParticles(note.lane, judgment);
+                }
                 this.effects.laneGlow[note.lane] = 1.0;
                 
                 this.showJudgment(judgment);
                 this.updateUI();
             }
 
-            addRipple(lane, judgment) {
-                const colors = { perfect: '#ffeb3b', good: '#4caf50', miss: '#f44336' };
-                this.effects.ripples.push({
-                    x: this.settings.lanePositions[lane],
-                    y: this.settings.judgeLineY,
-                    radius: 0,
-                    maxRadius: 60,
-                    color: colors[judgment],
-                    life: 1.0
-                });
-            }
 
             addParticles(lane, judgment) {
-                const colors = {
-                    perfect: ['#ffeb3b', '#fff59d', '#ffcc02'],
-                    good: ['#4caf50', '#81c784', '#388e3c'],
-                    miss: ['#f44336', '#e57373', '#d32f2f']
-                };
+                // missは何もエフェクトを表示しない
+                if (judgment === 'miss') {
+                    return;
+                }
                 
-                const particleCount = judgment === 'perfect' ? 15 : judgment === 'good' ? 8 : 3;
+                // perfectはリップルエフェクト、goodはシンプルな光るエフェクト
+                if (judgment === 'perfect') {
+                    this.addRippleEffect(lane, judgment);
+                } else if (judgment === 'good') {
+                    this.addGoodEffect(lane);
+                }
+            }
+
+            addRippleEffect(lane, judgment) {
                 const x = this.settings.lanePositions[lane];
                 const y = this.settings.judgeLineY;
                 
-                for (let i = 0; i < particleCount; i++) {
-                    this.particles.push({
-                        x: x + (Math.random() - 0.5) * 15,
-                        y: y + (Math.random() - 0.5) * 15,
-                        vx: (Math.random() - 0.5) * 150,
-                        vy: (Math.random() - 0.5) * 150 - 80,
-                        color: colors[judgment][Math.floor(Math.random() * colors[judgment].length)],
-                        life: 1.0,
-                        size: Math.random() * 4 + 2
-                    });
-                }
-                
-                if (judgment === 'perfect') {
-                    confetti({
-                        particleCount: 20,
-                        spread: 50,
-                        origin: { 
-                            x: x / this.canvas.width, 
-                            y: y / this.canvas.height 
-                        },
-                        colors: ['#ffeb3b', '#fff59d', '#ffcc02']
-                    });
-                }
+                this.effects.ripples.push({
+                    x: x,
+                    y: y,
+                    radius: 0,
+                    maxRadius: 100,
+                    color: '#ffeb3b',
+                    life: 1.0,
+                    judgment: judgment
+                });
             }
+            
+            addGoodEffect(lane) {
+                const x = this.settings.lanePositions[lane];
+                const y = this.settings.judgeLineY;
+                
+                // シンプルな光るドット
+                this.effects.goodDots = this.effects.goodDots || [];
+                this.effects.goodDots.push({
+                    x: x,
+                    y: y,
+                    size: 15,
+                    life: 1.0
+                });
+            }
+            
 
             showJudgment(judgment) {
                 const display = document.getElementById('judgmentDisplay');
@@ -563,14 +567,16 @@
                     ripple.life -= 1/60;
                     if (ripple.life <= 0) this.effects.ripples.splice(i, 1);
                 }
-
-                for (let i = this.particles.length - 1; i >= 0; i--) {
-                    const particle = this.particles[i];
-                    particle.x += particle.vx * (1/60);
-                    particle.y += particle.vy * (1/60);
-                    particle.vy += 400 * (1/60);
-                    particle.life -= 1/60;
-                    if (particle.life <= 0) this.particles.splice(i, 1);
+                
+                // goodドットエフェクト
+                for (let i = this.effects.goodDots.length - 1; i >= 0; i--) {
+                    const dot = this.effects.goodDots[i];
+                    dot.size *= 0.95; // 縮小
+                    dot.life -= 2/60; // 速く消える
+                    
+                    if (dot.life <= 0) {
+                        this.effects.goodDots.splice(i, 1);
+                    }
                 }
 
                 for (let i = 0; i < 3; i++) {
@@ -631,22 +637,37 @@
                     this.ctx.stroke();
                 }
                 
-                // エフェクト
+                // perfectリップル効果
                 for (const ripple of this.effects.ripples) {
-                    this.ctx.globalAlpha = ripple.life * 0.6;
+                    this.ctx.globalAlpha = ripple.life * 0.9;
                     this.ctx.strokeStyle = ripple.color;
-                    this.ctx.lineWidth = 2;
+                    this.ctx.lineWidth = 3;
+                    this.ctx.shadowColor = ripple.color;
+                    this.ctx.shadowBlur = 10;
                     this.ctx.beginPath();
                     this.ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
                     this.ctx.stroke();
+                    
+                    // 二重リップル効果
+                    this.ctx.globalAlpha = ripple.life * 0.36;
+                    this.ctx.lineWidth = 1.5;
+                    this.ctx.shadowBlur = 6;
+                    this.ctx.beginPath();
+                    this.ctx.arc(ripple.x, ripple.y, ripple.radius * 0.7, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                    this.ctx.shadowBlur = 0;
                 }
                 
-                for (const particle of this.particles) {
-                    this.ctx.globalAlpha = particle.life;
-                    this.ctx.fillStyle = particle.color;
+                // goodドットエフェクト
+                for (const dot of this.effects.goodDots) {
+                    this.ctx.globalAlpha = dot.life * 0.8;
+                    this.ctx.fillStyle = '#4caf50';
+                    this.ctx.shadowColor = '#4caf50';
+                    this.ctx.shadowBlur = 10;
                     this.ctx.beginPath();
-                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.arc(dot.x, dot.y, dot.size, 0, Math.PI * 2);
                     this.ctx.fill();
+                    this.ctx.shadowBlur = 0;
                 }
                 
                 this.ctx.globalAlpha = 1;

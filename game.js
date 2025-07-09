@@ -54,7 +54,8 @@ class PipipiRhythmGame {
             ripples: [],
             beatLines: [],
             backgroundPulse: 0,
-            laneGlow: [0, 0, 0]
+            laneGlow: [0, 0, 0],
+            goodDots: []
         };
         
         this.init();
@@ -287,68 +288,60 @@ class PipipiRhythmGame {
         note.hit = true;
         this.score += points * (1 + this.combo * 0.1);
         
-        // エフェクト
-        this.addRipple(note.lane, judgment);
-        this.addParticles(note.lane, judgment);
+        // エフェクト (missの場合は何もしない)
+        if (judgment !== 'miss') {
+            this.addParticles(note.lane, judgment);
+        }
         this.effects.laneGlow[note.lane] = 1.0;
         
         this.showJudgment(judgment);
         this.updateUI();
     }
 
-    addRipple(lane, judgment) {
-        const colors = {
-            perfect: '#ffeb3b',
-            good: '#4caf50',
-            miss: '#f44336'
-        };
-        
-        this.effects.ripples.push({
-            x: this.settings.lanePositions[lane],
-            y: this.settings.judgeLineY,
-            radius: 0,
-            maxRadius: 100,
-            color: colors[judgment],
-            life: 1.0
-        });
-    }
 
     addParticles(lane, judgment) {
-        const colors = {
-            perfect: ['#ffeb3b', '#fff59d', '#ffcc02'],
-            good: ['#4caf50', '#81c784', '#388e3c'],
-            miss: ['#f44336', '#e57373', '#d32f2f']
-        };
+        // missは何もエフェクトを表示しない
+        if (judgment === 'miss') {
+            return;
+        }
         
-        const particleCount = judgment === 'perfect' ? 20 : judgment === 'good' ? 10 : 5;
+        // perfectはリップルエフェクト、goodはシンプルな光るエフェクト
+        if (judgment === 'perfect') {
+            this.addRippleEffect(lane, judgment);
+        } else if (judgment === 'good') {
+            this.addGoodEffect(lane);
+        }
+    }
+
+    addRippleEffect(lane, judgment) {
         const x = this.settings.lanePositions[lane];
         const y = this.settings.judgeLineY;
         
-        for (let i = 0; i < particleCount; i++) {
-            this.particles.push({
-                x: x + (Math.random() - 0.5) * 20,
-                y: y + (Math.random() - 0.5) * 20,
-                vx: (Math.random() - 0.5) * 200,
-                vy: (Math.random() - 0.5) * 200 - 100,
-                color: colors[judgment][Math.floor(Math.random() * colors[judgment].length)],
-                life: 1.0,
-                size: Math.random() * 6 + 2
-            });
-        }
-        
-        // Canvas confetti for perfect hits
-        if (judgment === 'perfect') {
-            confetti({
-                particleCount: 30,
-                spread: 60,
-                origin: { 
-                    x: x / this.canvas.width, 
-                    y: y / this.canvas.height 
-                },
-                colors: ['#ffeb3b', '#fff59d', '#ffcc02']
-            });
-        }
+        this.effects.ripples.push({
+            x: x,
+            y: y,
+            radius: 0,
+            maxRadius: 120,
+            color: '#ffeb3b',
+            life: 1.0,
+            judgment: judgment
+        });
     }
+    
+    addGoodEffect(lane) {
+        const x = this.settings.lanePositions[lane];
+        const y = this.settings.judgeLineY;
+        
+        // シンプルな光るドット
+        this.effects.goodDots = this.effects.goodDots || [];
+        this.effects.goodDots.push({
+            x: x,
+            y: y,
+            size: 20,
+            life: 1.0
+        });
+    }
+    
 
     showJudgment(judgment) {
         const display = document.getElementById('judgmentDisplay');
@@ -435,19 +428,18 @@ class PipipiRhythmGame {
                 this.effects.ripples.splice(i, 1);
             }
         }
-
-        // パーティクル
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const particle = this.particles[i];
-            particle.x += particle.vx * (1/60);
-            particle.y += particle.vy * (1/60);
-            particle.vy += 500 * (1/60); // 重力
-            particle.life -= 1/60;
+        
+        // goodドットエフェクト
+        for (let i = this.effects.goodDots.length - 1; i >= 0; i--) {
+            const dot = this.effects.goodDots[i];
+            dot.size *= 0.95; // 縮小
+            dot.life -= 2/60; // 速く消える
             
-            if (particle.life <= 0) {
-                this.particles.splice(i, 1);
+            if (dot.life <= 0) {
+                this.effects.goodDots.splice(i, 1);
             }
         }
+
 
         // レーングロー
         for (let i = 0; i < 3; i++) {
@@ -469,13 +461,24 @@ class PipipiRhythmGame {
     render() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // 背景グラデーション with pulse
-        const pulse = this.effects.backgroundPulse * 0.3;
+        // 背景グラデーション with pulse - ダークテーマ
+        const pulse = this.effects.backgroundPulse * 0.2;
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, `rgba(102, 126, 234, ${0.1 + pulse})`);
-        gradient.addColorStop(1, `rgba(118, 75, 162, ${0.1 + pulse})`);
+        gradient.addColorStop(0, `rgba(15, 15, 15, ${0.9 + pulse})`);
+        gradient.addColorStop(0.5, `rgba(25, 25, 25, ${0.95 + pulse})`);
+        gradient.addColorStop(1, `rgba(10, 10, 10, ${0.98 + pulse})`);
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 微細な粒子効果
+        this.ctx.fillStyle = `rgba(64, 224, 208, ${0.03 + pulse * 0.05})`;
+        for (let i = 0; i < 50; i++) {
+            const x = Math.random() * this.canvas.width;
+            const y = Math.random() * this.canvas.height;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, Math.random() * 1.5, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
         
         // 音楽スペクトラム表示
         this.drawSpectrum();
@@ -496,13 +499,20 @@ class PipipiRhythmGame {
     drawSpectrum() {
         if (!this.frequencyData) return;
         
-        this.ctx.globalAlpha = 0.3;
+        this.ctx.globalAlpha = 0.2;
         const barWidth = this.canvas.width / this.frequencyData.length;
         
         for (let i = 0; i < this.frequencyData.length; i++) {
-            const height = (this.frequencyData[i] / 255) * this.canvas.height * 0.3;
-            const hue = (i / this.frequencyData.length) * 360;
-            this.ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+            const height = (this.frequencyData[i] / 255) * this.canvas.height * 0.25;
+            const intensity = this.frequencyData[i] / 255;
+            
+            // サイバー系カラーパレット
+            const gradient = this.ctx.createLinearGradient(0, this.canvas.height, 0, this.canvas.height - height);
+            gradient.addColorStop(0, `rgba(64, 224, 208, ${intensity * 0.8})`);
+            gradient.addColorStop(0.5, `rgba(0, 206, 209, ${intensity * 0.6})`);
+            gradient.addColorStop(1, `rgba(30, 144, 255, ${intensity * 0.4})`);
+            
+            this.ctx.fillStyle = gradient;
             this.ctx.fillRect(i * barWidth, this.canvas.height - height, barWidth, height);
         }
         
@@ -514,30 +524,45 @@ class PipipiRhythmGame {
             const x = i * this.settings.laneWidth;
             const glow = this.effects.laneGlow[i];
             
-            // レーン背景
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${0.1 + glow * 0.3})`;
+            // レーン背景 - ダークテーマ
+            const gradient = this.ctx.createLinearGradient(x, 0, x + this.settings.laneWidth, 0);
+            gradient.addColorStop(0, `rgba(64, 224, 208, ${0.02 + glow * 0.15})`);
+            gradient.addColorStop(0.5, `rgba(30, 30, 30, ${0.1 + glow * 0.2})`);
+            gradient.addColorStop(1, `rgba(64, 224, 208, ${0.02 + glow * 0.15})`);
+            
+            this.ctx.fillStyle = gradient;
             this.ctx.fillRect(x, 0, this.settings.laneWidth, this.canvas.height);
             
-            // レーン境界線
+            // レーン境界線 - ネオンスタイル
             if (i < 2) {
-                this.ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 + glow * 0.5})`;
-                this.ctx.lineWidth = 2;
+                this.ctx.strokeStyle = `rgba(64, 224, 208, ${0.4 + glow * 0.6})`;
+                this.ctx.lineWidth = 1;
+                this.ctx.shadowColor = 'rgba(64, 224, 208, 0.5)';
+                this.ctx.shadowBlur = 5;
                 this.ctx.beginPath();
                 this.ctx.moveTo(x + this.settings.laneWidth, 0);
                 this.ctx.lineTo(x + this.settings.laneWidth, this.canvas.height);
                 this.ctx.stroke();
+                this.ctx.shadowBlur = 0;
             }
         }
     }
 
     drawJudgeLine() {
         const gradient = this.ctx.createLinearGradient(0, 0, this.canvas.width, 0);
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
-        gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.8)');
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        gradient.addColorStop(0, 'rgba(64, 224, 208, 0)');
+        gradient.addColorStop(0.5, 'rgba(64, 224, 208, 0.9)');
+        gradient.addColorStop(1, 'rgba(64, 224, 208, 0)');
         
+        // メインライン
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, this.settings.judgeLineY - 2, this.canvas.width, 4);
+        
+        // グロー効果
+        this.ctx.shadowColor = 'rgba(64, 224, 208, 0.6)';
+        this.ctx.shadowBlur = 10;
+        this.ctx.fillRect(0, this.settings.judgeLineY - 1, this.canvas.width, 2);
+        this.ctx.shadowBlur = 0;
     }
 
     drawNotes() {
@@ -546,48 +571,74 @@ class PipipiRhythmGame {
             
             const x = this.settings.lanePositions[note.lane];
             const y = note.y;
-            const radius = 20;
+            const radius = 22;
             
-            // ノートの影
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            // ノートの影 - より強い影
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
             this.ctx.beginPath();
-            this.ctx.arc(x + 2, y + 2, radius, 0, Math.PI * 2);
+            this.ctx.arc(x + 3, y + 3, radius, 0, Math.PI * 2);
             this.ctx.fill();
             
-            // ノート本体
+            // ノート本体 - サイバー系グラデーション
             const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, radius);
             gradient.addColorStop(0, '#ffffff');
-            gradient.addColorStop(1, '#4fc3f7');
+            gradient.addColorStop(0.3, '#40e0d0');
+            gradient.addColorStop(0.7, '#00ced1');
+            gradient.addColorStop(1, '#1e90ff');
+            
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
             this.ctx.arc(x, y, radius, 0, Math.PI * 2);
             this.ctx.fill();
             
-            // ノート輪郭
-            this.ctx.strokeStyle = '#01579b';
+            // ノート輪郭 - グロー効果
+            this.ctx.strokeStyle = '#40e0d0';
             this.ctx.lineWidth = 2;
+            this.ctx.shadowColor = 'rgba(64, 224, 208, 0.8)';
+            this.ctx.shadowBlur = 8;
             this.ctx.stroke();
+            this.ctx.shadowBlur = 0;
+            
+            // 内側のハイライト
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            this.ctx.beginPath();
+            this.ctx.arc(x - 5, y - 5, radius * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
         }
     }
 
     drawEffects() {
-        // リップル効果
+        // perfectリップル効果
         for (const ripple of this.effects.ripples) {
-            this.ctx.globalAlpha = ripple.life * 0.8;
+            this.ctx.globalAlpha = ripple.life * 0.9;
             this.ctx.strokeStyle = ripple.color;
-            this.ctx.lineWidth = 3;
+            this.ctx.lineWidth = 4;
+            this.ctx.shadowColor = ripple.color;
+            this.ctx.shadowBlur = 15;
             this.ctx.beginPath();
             this.ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
             this.ctx.stroke();
+            
+            // 二重リップル効果
+            this.ctx.globalAlpha = ripple.life * 0.36;
+            this.ctx.lineWidth = 2;
+            this.ctx.shadowBlur = 8;
+            this.ctx.beginPath();
+            this.ctx.arc(ripple.x, ripple.y, ripple.radius * 0.7, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.shadowBlur = 0;
         }
         
-        // パーティクル
-        for (const particle of this.particles) {
-            this.ctx.globalAlpha = particle.life;
-            this.ctx.fillStyle = particle.color;
+        // goodドットエフェクト
+        for (const dot of this.effects.goodDots) {
+            this.ctx.globalAlpha = dot.life * 0.8;
+            this.ctx.fillStyle = '#4caf50';
+            this.ctx.shadowColor = '#4caf50';
+            this.ctx.shadowBlur = 15;
             this.ctx.beginPath();
-            this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            this.ctx.arc(dot.x, dot.y, dot.size, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.shadowBlur = 0;
         }
         
         this.ctx.globalAlpha = 1;
