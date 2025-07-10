@@ -127,17 +127,20 @@ class PipipiRhythmGame {
     setupEventListeners() {
         // キーボード入力
         document.addEventListener('keydown', (e) => {
+            // ポーズ処理
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (this.gameState === 'playing' || this.gameState === 'paused') {
+                    this.togglePause();
+                }
+                return;
+            }
+            
             if (this.gameState !== 'playing') return;
             
             const lane = this.keys[e.code];
             if (lane !== undefined) {
                 this.handleInput(lane);
-            }
-            
-            // ポーズ
-            if (e.code === 'Space') {
-                e.preventDefault();
-                this.togglePause();
             }
         });
 
@@ -189,70 +192,191 @@ class PipipiRhythmGame {
     async loadChart() {
         // 5レーン対応の大幅に難しくしたチャートデータ
         this.chartData = {
-            "songInfo": {"title": "ぴぴぴ… しんごう…", "artist": "pa9wo", "duration": 217.87, "bpm": 150},
-            "chart": this.generateDifficultChart()
+            "songInfo": {"title": "pipipiソーダ", "artist": "pa9wo", "duration": 211.944, "bpm": 150},
+            "chart": this.generatePipipiSodaChart()
         };
         console.log('Chart loaded:', this.chartData);
     }
     
-    generateDifficultChart() {
+    generatePipipiSodaChart() {
         const notes = [];
         const lanes = ['D', 'F', 'K', 'L'];
         
-        // イントロ（0-8秒）- 基本パターン
-        for (let t = 0.5; t < 8; t += 0.5) {
-            notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 2) + 1] }); // 中央2レーン
-        }
+        // BPM 150に基づく拍間隔 (60/150 = 0.4秒) - 難易度を下げるため間隔を長めに
+        const beatInterval = 0.5;  // 0.4 → 0.5に変更
+        const halfBeat = beatInterval / 2;
         
-        // メインセクション1（8-40秒）- 難易度中
-        for (let t = 8; t < 40; t += 0.3) {
-            if (Math.random() > 0.4) { // 60%の確率でノート配置
-                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
-            }
-        }
+        // イントロ（0-8秒）- シンプルなメロディ
+        this.addEasyMelodyPattern(notes, 0, 8, lanes, [
+            [0.5, ['F']], [1.0, ['K']], [1.5, ['F']], [2.0, ['D']],
+            [2.5, ['K']], [3.0, ['L']], [3.5, ['K']], [4.0, ['F']],
+            [4.5, ['D']], [5.0, ['F']], [5.5, ['K']], [6.0, ['D']],
+            [6.5, ['F']], [7.0, ['K']], [7.5, ['L']]
+        ]);
         
-        // 間奏（40-50秒）- 少し休憩
-        for (let t = 40; t < 50; t += 0.7) {
-            notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 2) + 1] });
-        }
+        // メインセクション1（8-40秒）- 基本的なメロディ
+        this.addSimplePattern(notes, 8, 40, lanes, beatInterval);
         
-        // メインセクション2（50-100秒）- 難易度高
-        for (let t = 50; t < 100; t += 0.25) {
-            if (Math.random() > 0.3) { // 70%の確率でノート配置
-                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
-            }
-        }
+        // 間奏（40-55秒）- 交互パターン
+        this.addAlternatePattern(notes, 40, 55, lanes, halfBeat);
         
-        // 中間部（100-140秒）- 複雑なパターン
-        for (let t = 100; t < 140; t += 0.2) {
-            if (Math.random() > 0.25) { // 75%の確率でノート配置
-                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
-            }
-        }
+        // メインセクション2（55-100秒）- 少し密度を上げる
+        this.addMediumPattern(notes, 55, 100, lanes, beatInterval);
         
-        // クライマックス（140-180秒）- 高難易度
-        for (let t = 140; t < 180; t += 0.15) {
-            if (Math.random() > 0.2) { // 80%の確率でノート配置
-                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
-            }
-        }
+        // 中間部（100-140秒）- たまに同時押し
+        this.addMildSyncPattern(notes, 100, 140, lanes, beatInterval);
         
-        // アウトロ（180-217秒）- 徐々に減少
-        for (let t = 180; t < 217; t += 0.4) {
-            if (Math.random() > 0.5) { // 50%の確率でノート配置
-                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 3) + 1] });
-            }
-        }
+        // クライマックス（140-180秒）- 適度な難易度
+        this.addModerateClimaxPattern(notes, 140, 180, lanes, halfBeat);
+        
+        // アウトロ（180-211秒）- 余韻とフィニッシュ
+        this.addEasyOutroPattern(notes, 180, 211, lanes, beatInterval);
         
         // 時間順にソート
         return notes.sort((a, b) => a.time - b.time);
+    }
+    
+    addEasyMelodyPattern(notes, startTime, endTime, lanes, pattern) {
+        for (const [time, laneList] of pattern) {
+            if (startTime + time < endTime) {
+                for (const lane of laneList) {
+                    notes.push({ time: startTime + time, type: "tap", lane });
+                }
+            }
+        }
+    }
+    
+    addSimplePattern(notes, startTime, endTime, lanes, interval) {
+        for (let t = startTime; t < endTime; t += interval) {
+            // シンプルなメロディライン
+            const melodyLane = lanes[Math.floor((t - startTime) / (interval * 2)) % 4];
+            notes.push({ time: t, type: "tap", lane: melodyLane });
+            
+            // たまにサブメロディ（30%の確率）
+            if (Math.random() < 0.3 && t + interval / 2 < endTime) {
+                const subLane = lanes[(lanes.indexOf(melodyLane) + 1) % 4];
+                notes.push({ time: t + interval / 2, type: "tap", lane: subLane });
+            }
+        }
+    }
+    
+    addAlternatePattern(notes, startTime, endTime, lanes, interval) {
+        for (let t = startTime; t < endTime; t += interval) {
+            // 交互パターン（左右交互）
+            const isLeft = Math.floor((t - startTime) / interval) % 2 === 0;
+            const lane = isLeft ? lanes[0] : lanes[3];
+            notes.push({ time: t, type: "tap", lane });
+            
+            // 時々中央にノート（40%の確率）
+            if (Math.random() < 0.4 && t + interval / 2 < endTime) {
+                const centerLane = Math.random() < 0.5 ? lanes[1] : lanes[2];
+                notes.push({ time: t + interval / 2, type: "tap", lane: centerLane });
+            }
+        }
+    }
+    
+    addMediumPattern(notes, startTime, endTime, lanes, interval) {
+        for (let t = startTime; t < endTime; t += interval) {
+            // 中程度のパターン
+            const patternType = Math.floor((t - startTime) / 4) % 3;
+            
+            switch(patternType) {
+                case 0: // 左から右へ（ゆっくり）
+                    for (let i = 0; i < lanes.length; i++) {
+                        if (t + i * interval / 2 < endTime) {
+                            notes.push({ time: t + i * interval / 2, type: "tap", lane: lanes[i] });
+                        }
+                    }
+                    break;
+                case 1: // 中央交互
+                    notes.push({ time: t, type: "tap", lane: lanes[1] });
+                    if (t + interval / 2 < endTime) {
+                        notes.push({ time: t + interval / 2, type: "tap", lane: lanes[2] });
+                    }
+                    break;
+                case 2: // ランダム単発
+                    const randomLane = lanes[Math.floor(Math.random() * 4)];
+                    notes.push({ time: t, type: "tap", lane: randomLane });
+                    break;
+            }
+        }
+    }
+    
+    addMildSyncPattern(notes, startTime, endTime, lanes, interval) {
+        for (let t = startTime; t < endTime; t += interval) {
+            // 控えめな同時押しパターン
+            if ((t - startTime) % (interval * 4) < interval) {
+                // たまに2レーン同時（25%の頻度）
+                const lane1 = Math.floor(Math.random() * 4);
+                let lane2 = Math.floor(Math.random() * 4);
+                while (lane2 === lane1) lane2 = Math.floor(Math.random() * 4);
+                
+                notes.push({ time: t, type: "tap", lane: lanes[lane1] });
+                notes.push({ time: t, type: "tap", lane: lanes[lane2] });
+            } else {
+                // 普通の単発ノート
+                const randomLane = lanes[Math.floor(Math.random() * 4)];
+                notes.push({ time: t, type: "tap", lane: randomLane });
+            }
+        }
+    }
+    
+    addModerateClimaxPattern(notes, startTime, endTime, lanes, interval) {
+        for (let t = startTime; t < endTime; t += interval) {
+            // 適度なクライマックスパターン
+            const pattern = Math.floor((t - startTime) / interval) % 4;
+            
+            switch(pattern) {
+                case 0: // 左右同時押し
+                    notes.push({ time: t, type: "tap", lane: lanes[0] });
+                    notes.push({ time: t, type: "tap", lane: lanes[3] });
+                    break;
+                case 1: // 中央同時押し
+                    notes.push({ time: t, type: "tap", lane: lanes[1] });
+                    notes.push({ time: t, type: "tap", lane: lanes[2] });
+                    break;
+                case 2: // 簡単な連打
+                    for (let i = 0; i < 3; i++) {
+                        if (t + i * interval / 4 < endTime) {
+                            notes.push({ time: t + i * interval / 4, type: "tap", lane: lanes[i] });
+                        }
+                    }
+                    break;
+                case 3: // ランダム単発
+                    const randomLane = lanes[Math.floor(Math.random() * 4)];
+                    notes.push({ time: t, type: "tap", lane: randomLane });
+                    if (t + interval / 2 < endTime) {
+                        const secondLane = lanes[Math.floor(Math.random() * 4)];
+                        notes.push({ time: t + interval / 2, type: "tap", lane: secondLane });
+                    }
+                    break;
+            }
+        }
+    }
+    
+    addEasyOutroPattern(notes, startTime, endTime, lanes, interval) {
+        for (let t = startTime; t < endTime; t += interval) {
+            // 簡単な余韻パターン
+            if (t < endTime - 5) {
+                // 通常パターン
+                const lane = Math.floor(Math.random() * 4);
+                notes.push({ time: t, type: "tap", lane: lanes[lane] });
+            } else {
+                // シンプルなフィニッシュ（最後の5秒）
+                if ((t - (endTime - 5)) % (interval * 2) === 0) {
+                    // 左右交互
+                    const isLeft = Math.floor((t - (endTime - 5)) / (interval * 2)) % 2 === 0;
+                    notes.push({ time: t, type: "tap", lane: isLeft ? lanes[0] : lanes[3] });
+                }
+            }
+        }
     }
 
     async setupAudio() {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             
-            const response = await fetch('./pipipipi_shingou.mp3');
+            const response = await fetch('./pipipipi_soda.mp3');
             const audioData = await response.arrayBuffer();
             this.audioBuffer = await this.audioContext.decodeAudioData(audioData);
             
