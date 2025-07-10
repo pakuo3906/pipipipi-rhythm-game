@@ -288,6 +288,26 @@
             100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
 
+        .settings-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            backdrop-filter: blur(10px);
+        }
+
+        .key-input:focus {
+            border-color: #40e0d0 !important;
+            box-shadow: 0 0 15px rgba(64, 224, 208, 0.5);
+            outline: none;
+        }
+
         @media (max-width: 768px) {
             .game-container {
                 max-width: 100%;
@@ -305,6 +325,18 @@
             
             .score-display, .combo-display {
                 font-size: 18px;
+            }
+
+            .settings-screen > div {
+                margin: 20px;
+                padding: 30px !important;
+                max-width: 90% !important;
+            }
+
+            .settings-screen .key-input {
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 16px !important;
             }
         }
     </style>
@@ -326,6 +358,7 @@
         <div class="controls">
             <button class="control-btn" id="pauseBtn">Pause</button>
             <button class="control-btn" id="retryBtn">Retry</button>
+            <button class="control-btn" id="settingsBtn">Settings</button>
             <div class="volume-control" style="display: flex; align-items: center; gap: 10px; margin-left: 20px;">
                 <span style="font-size: 14px;">🔊</span>
                 <input type="range" id="volumeSlider" min="0" max="100" value="70" 
@@ -336,11 +369,57 @@
         <div class="start-screen" id="startScreen">
             <h1>🎵 Pipipipi Rhythm 🎵</h1>
             <p>
-                音楽に合わせて3つのレーンをタップしよう！<br>
-                <strong>A</strong>（左）、<strong>S</strong>（中央）、<strong>D</strong>（右）キーまたは画面をタップ<br>
-                リッチなエフェクトで最高のリズム体験を楽しんで！
+                音楽に合わせて4つのレーンをタップしよう！<br>
+                <strong>D</strong>（左）、<strong>F</strong>（左中）、<strong>K</strong>（右中）、<strong>L</strong>（右）キーまたは画面をタップ<br>
+                高密度ノーツでリズム体験を楽しんで！
             </p>
             <button class="start-btn" id="startBtn">ゲームスタート</button>
+        </div>
+
+        <div class="settings-screen" id="settingsScreen" style="display: none;">
+            <div style="background: rgba(0, 0, 0, 0.9); padding: 40px; border-radius: 20px; max-width: 600px;">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #40e0d0;">⚙️ Settings</h2>
+                
+                <div style="margin-bottom: 25px;">
+                    <h3 style="margin-bottom: 15px; color: #ffffff;">キーバインド設定</h3>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                        <div style="text-align: center;">
+                            <label style="display: block; margin-bottom: 8px; color: #ccc;">左</label>
+                            <input type="text" id="key0" class="key-input" maxlength="1" value="D" 
+                                   style="width: 50px; height: 50px; text-align: center; font-size: 20px; font-weight: bold; 
+                                          background: rgba(255,255,255,0.1); border: 2px solid rgba(64,224,208,0.5); 
+                                          border-radius: 10px; color: white; text-transform: uppercase;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; margin-bottom: 8px; color: #ccc;">左中</label>
+                            <input type="text" id="key1" class="key-input" maxlength="1" value="F" 
+                                   style="width: 50px; height: 50px; text-align: center; font-size: 20px; font-weight: bold; 
+                                          background: rgba(255,255,255,0.1); border: 2px solid rgba(64,224,208,0.5); 
+                                          border-radius: 10px; color: white; text-transform: uppercase;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; margin-bottom: 8px; color: #ccc;">右中</label>
+                            <input type="text" id="key2" class="key-input" maxlength="1" value="K" 
+                                   style="width: 50px; height: 50px; text-align: center; font-size: 20px; font-weight: bold; 
+                                          background: rgba(255,255,255,0.1); border: 2px solid rgba(64,224,208,0.5); 
+                                          border-radius: 10px; color: white; text-transform: uppercase;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; margin-bottom: 8px; color: #ccc;">右</label>
+                            <input type="text" id="key3" class="key-input" maxlength="1" value="L" 
+                                   style="width: 50px; height: 50px; text-align: center; font-size: 20px; font-weight: bold; 
+                                          background: rgba(255,255,255,0.1); border: 2px solid rgba(64,224,208,0.5); 
+                                          border-radius: 10px; color: white; text-transform: uppercase;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                    <button class="control-btn" id="saveSettingsBtn">保存</button>
+                    <button class="control-btn" id="resetKeysBtn">デフォルトに戻す</button>
+                    <button class="control-btn" id="closeSettingsBtn">閉じる</button>
+                </div>
+            </div>
         </div>
     </div>
 

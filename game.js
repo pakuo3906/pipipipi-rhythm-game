@@ -36,12 +36,9 @@ class PipipiRhythmGame {
             }
         };
         
-        // キー設定 (A=左, S=中央, D=右)
-        this.keys = {
-            'KeyA': 0,
-            'KeyS': 1,
-            'KeyD': 2
-        };
+        // キー設定 (D=左, F=左中, K=右中, L=右)
+        this.defaultKeys = ['D', 'F', 'K', 'L'];
+        this.keys = this.loadKeybinds();
         
         // 音量設定
         this.audioSettings = {
@@ -54,11 +51,47 @@ class PipipiRhythmGame {
             ripples: [],
             beatLines: [],
             backgroundPulse: 0,
-            laneGlow: [0, 0, 0],
+            laneGlow: [0, 0, 0, 0],
             goodDots: []
         };
         
         this.init();
+    }
+    
+    getLaneFromChart(laneLetter) {
+        const laneMap = { 'D': 0, 'F': 1, 'K': 2, 'L': 3 };
+        return laneMap[laneLetter] || 0;
+    }
+
+    loadKeybinds() {
+        try {
+            const saved = localStorage.getItem('pipipipi_keybinds');
+            if (saved) {
+                const keybinds = JSON.parse(saved);
+                const keys = {};
+                for (let i = 0; i < 4; i++) {
+                    keys[`Key${keybinds[i].toUpperCase()}`] = i;
+                }
+                return keys;
+            }
+        } catch (error) {
+            console.warn('Failed to load keybinds:', error);
+        }
+        // デフォルトのキーバインド
+        return { 'KeyD': 0, 'KeyF': 1, 'KeyK': 2, 'KeyL': 3 };
+    }
+
+    saveKeybinds(keybinds) {
+        try {
+            localStorage.setItem('pipipipi_keybinds', JSON.stringify(keybinds));
+            const keys = {};
+            for (let i = 0; i < 4; i++) {
+                keys[`Key${keybinds[i].toUpperCase()}`] = i;
+            }
+            this.keys = keys;
+        } catch (error) {
+            console.error('Failed to save keybinds:', error);
+        }
     }
 
     async init() {
@@ -80,13 +113,14 @@ class PipipiRhythmGame {
         this.canvas.width = container.clientWidth;
         this.canvas.height = container.clientHeight;
         
-        // ゲーム領域の計算
+        // ゲーム領域の計算（4レーン）
         this.settings.judgeLineY = this.canvas.height * 0.8;
-        this.settings.laneWidth = this.canvas.width / 3;
+        this.settings.laneWidth = this.canvas.width / 4;
         this.settings.lanePositions = [
             this.settings.laneWidth * 0.5,
             this.settings.laneWidth * 1.5,
-            this.settings.laneWidth * 2.5
+            this.settings.laneWidth * 2.5,
+            this.settings.laneWidth * 3.5
         ];
     }
 
@@ -115,7 +149,7 @@ class PipipiRhythmGame {
             const x = e.clientX - rect.left;
             const lane = Math.floor(x / this.settings.laneWidth);
             
-            if (lane >= 0 && lane < 3) {
+            if (lane >= 0 && lane < 4) {
                 this.handleInput(lane);
             }
         });
@@ -124,21 +158,94 @@ class PipipiRhythmGame {
         document.getElementById('startBtn').addEventListener('click', () => this.startGame());
         document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
         document.getElementById('retryBtn').addEventListener('click', () => this.retryGame());
+        document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
         
         // 音量調整
         document.getElementById('volumeSlider').addEventListener('input', (e) => {
             this.setVolume(e.target.value / 100);
         });
+
+        // 設定関連
+        document.getElementById('saveSettingsBtn').addEventListener('click', () => this.saveSettings());
+        document.getElementById('resetKeysBtn').addEventListener('click', () => this.resetKeys());
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => this.closeSettings());
+
+        // キー入力フィールドのイベント
+        for (let i = 0; i < 4; i++) {
+            const input = document.getElementById(`key${i}`);
+            input.addEventListener('input', (e) => {
+                e.target.value = e.target.value.toUpperCase().slice(-1);
+            });
+            input.addEventListener('keydown', (e) => {
+                e.preventDefault();
+                const key = e.key.toUpperCase();
+                if (key.match(/^[A-Z]$/)) {
+                    e.target.value = key;
+                }
+            });
+        }
     }
 
     async loadChart() {
-        try {
-            const response = await fetch('./backup/v1_beat_slice_initial/pipipipi_shingou_chart.json');
-            this.chartData = await response.json();
-            console.log('Chart loaded:', this.chartData);
-        } catch (error) {
-            console.error('Failed to load chart:', error);
+        // 5レーン対応の大幅に難しくしたチャートデータ
+        this.chartData = {
+            "songInfo": {"title": "ぴぴぴ… しんごう…", "artist": "pa9wo", "duration": 217.87, "bpm": 150},
+            "chart": this.generateDifficultChart()
+        };
+        console.log('Chart loaded:', this.chartData);
+    }
+    
+    generateDifficultChart() {
+        const notes = [];
+        const lanes = ['D', 'F', 'K', 'L'];
+        
+        // イントロ（0-8秒）- 基本パターン
+        for (let t = 0.5; t < 8; t += 0.5) {
+            notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 2) + 1] }); // 中央2レーン
         }
+        
+        // メインセクション1（8-40秒）- 難易度中
+        for (let t = 8; t < 40; t += 0.3) {
+            if (Math.random() > 0.4) { // 60%の確率でノート配置
+                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+            }
+        }
+        
+        // 間奏（40-50秒）- 少し休憩
+        for (let t = 40; t < 50; t += 0.7) {
+            notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 2) + 1] });
+        }
+        
+        // メインセクション2（50-100秒）- 難易度高
+        for (let t = 50; t < 100; t += 0.25) {
+            if (Math.random() > 0.3) { // 70%の確率でノート配置
+                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+            }
+        }
+        
+        // 中間部（100-140秒）- 複雑なパターン
+        for (let t = 100; t < 140; t += 0.2) {
+            if (Math.random() > 0.25) { // 75%の確率でノート配置
+                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+            }
+        }
+        
+        // クライマックス（140-180秒）- 高難易度
+        for (let t = 140; t < 180; t += 0.15) {
+            if (Math.random() > 0.2) { // 80%の確率でノート配置
+                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+            }
+        }
+        
+        // アウトロ（180-217秒）- 徐々に減少
+        for (let t = 180; t < 217; t += 0.4) {
+            if (Math.random() > 0.5) { // 50%の確率でノート配置
+                notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 3) + 1] });
+            }
+        }
+        
+        // 時間順にソート
+        return notes.sort((a, b) => a.time - b.time);
     }
 
     async setupAudio() {
@@ -242,6 +349,56 @@ class PipipiRhythmGame {
         this.audioSettings.masterVolume = volume;
         if (this.audioSettings.volumeNode) {
             this.audioSettings.volumeNode.gain.value = volume;
+        }
+    }
+
+    showSettings() {
+        document.getElementById('settingsScreen').style.display = 'flex';
+        this.loadCurrentKeysToUI();
+    }
+
+    closeSettings() {
+        document.getElementById('settingsScreen').style.display = 'none';
+    }
+
+    loadCurrentKeysToUI() {
+        try {
+            const saved = localStorage.getItem('pipipipi_keybinds');
+            const keybinds = saved ? JSON.parse(saved) : this.defaultKeys;
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`key${i}`).value = keybinds[i];
+            }
+        } catch (error) {
+            this.resetKeys();
+        }
+    }
+
+    saveSettings() {
+        const keybinds = [];
+        for (let i = 0; i < 4; i++) {
+            const key = document.getElementById(`key${i}`).value.toUpperCase();
+            if (!key.match(/^[A-Z]$/)) {
+                alert(`無効なキーです: ${key || '空'}`);
+                return;
+            }
+            keybinds.push(key);
+        }
+        
+        // 重複チェック
+        const unique = new Set(keybinds);
+        if (unique.size !== keybinds.length) {
+            alert('同じキーを複数のレーンに設定することはできません');
+            return;
+        }
+        
+        this.saveKeybinds(keybinds);
+        this.closeSettings();
+        alert('キーバインドを保存しました！');
+    }
+
+    resetKeys() {
+        for (let i = 0; i < 4; i++) {
+            document.getElementById(`key${i}`).value = this.defaultKeys[i];
         }
     }
 
@@ -378,10 +535,11 @@ class PipipiRhythmGame {
             const fallDistance = this.canvas.height + 100; // 画面上部から判定ラインまで + 余裕
             const spawnTime = chartNote.time - fallDistance / this.settings.noteSpeed;
             
-            if (this.currentTime >= spawnTime) {
+            // 曲開始前（currentTime < 0）にはノートを表示しない
+            if (this.currentTime >= Math.max(0, spawnTime)) {
                 this.notes.push({
                     time: chartNote.time,
-                    lane: chartNote.lane === 'S' ? 1 : chartNote.lane === 'A' ? 0 : 2, // A=0(左), S=1(中央), D=2(右)
+                    lane: this.getLaneFromChart(chartNote.lane), // チャートのレーン文字を数値に変換
                     type: chartNote.type,
                     duration: chartNote.duration || 0,
                     y: -100, // 画面上部から開始
@@ -442,7 +600,7 @@ class PipipiRhythmGame {
 
 
         // レーングロー
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
             this.effects.laneGlow[i] *= 0.9;
         }
 
@@ -520,7 +678,7 @@ class PipipiRhythmGame {
     }
 
     drawLanes() {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
             const x = i * this.settings.laneWidth;
             const glow = this.effects.laneGlow[i];
             
@@ -534,7 +692,7 @@ class PipipiRhythmGame {
             this.ctx.fillRect(x, 0, this.settings.laneWidth, this.canvas.height);
             
             // レーン境界線 - ネオンスタイル
-            if (i < 2) {
+            if (i < 3) {
                 this.ctx.strokeStyle = `rgba(64, 224, 208, ${0.4 + glow * 0.6})`;
                 this.ctx.lineWidth = 1;
                 this.ctx.shadowColor = 'rgba(64, 224, 208, 0.5)';

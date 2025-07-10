@@ -213,8 +213,8 @@
         <div class="start-screen" id="startScreen">
             <h1>🎵 Pipipipi Rhythm 🎵</h1>
             <p>
-                A（左）・S（中央）・D（右）キーまたはタップで演奏！<br>
-                リッチなエフェクトでリズムを楽しもう！
+                D（左）・F（左中）・K（右中）・L（右）キーまたはタップで演奏！<br>
+                高密度ノーツでリズムを楽しもう！
             </p>
             <button class="start-btn" id="startBtn">START</button>
         </div>
@@ -252,11 +252,11 @@
                     judgeWindow: { perfect: 0.1, good: 0.2, miss: 0.3 }
                 };
                 
-                this.keys = { 'KeyA': 0, 'KeyS': 1, 'KeyD': 2 };
+                this.keys = { 'KeyD': 0, 'KeyF': 1, 'KeyK': 2, 'KeyL': 3 };
                 this.effects = { 
                     ripples: [], 
                     backgroundPulse: 0, 
-                    laneGlow: [0, 0, 0],
+                    laneGlow: [0, 0, 0, 0],
                     goodDots: []
                 };
                 
@@ -283,11 +283,12 @@
                 this.canvas.height = container.clientHeight;
                 
                 this.settings.judgeLineY = this.canvas.height * 0.8;
-                this.settings.laneWidth = this.canvas.width / 3;
+                this.settings.laneWidth = this.canvas.width / 4;
                 this.settings.lanePositions = [
                     this.settings.laneWidth * 0.5,
                     this.settings.laneWidth * 1.5,
-                    this.settings.laneWidth * 2.5
+                    this.settings.laneWidth * 2.5,
+                    this.settings.laneWidth * 3.5
                 ];
             }
 
@@ -307,7 +308,7 @@
                     const rect = this.canvas.getBoundingClientRect();
                     const x = e.clientX - rect.left;
                     const lane = Math.floor(x / this.settings.laneWidth);
-                    if (lane >= 0 && lane < 3) this.handleInput(lane);
+                    if (lane >= 0 && lane < 4) this.handleInput(lane);
                 });
 
                 document.getElementById('startBtn').addEventListener('click', () => this.startGame());
@@ -321,17 +322,67 @@
             }
 
             async loadChart() {
-                const chartData = {
+                this.chartData = {
                     "songInfo": {"title": "ぴぴぴ… しんごう…", "artist": "pa9wo", "duration": 217.87, "bpm": 150},
-                    "chart": [
-                        {"time": 0.5, "type": "tap", "lane": "S"}, {"time": 1.2, "type": "tap", "lane": "A"}, {"time": 2.0, "type": "tap", "lane": "D"},
-                        {"time": 3.1, "type": "tap", "lane": "S"}, {"time": 4.5, "type": "tap", "lane": "A"}, {"time": 5.2, "type": "tap", "lane": "D"},
-                        {"time": 6.0, "type": "tap", "lane": "S"}, {"time": 7.3, "type": "tap", "lane": "D"}, {"time": 8.8, "type": "tap", "lane": "A"},
-                        {"time": 9.5, "type": "tap", "lane": "S"}, {"time": 10.2, "type": "tap", "lane": "D"}, {"time": 11.0, "type": "tap", "lane": "A"},
-                        {"time": 12.5, "type": "tap", "lane": "S"}, {"time": 13.2, "type": "tap", "lane": "D"}, {"time": 14.0, "type": "tap", "lane": "A"}
-                    ]
+                    "chart": this.generateDifficultChart()
                 };
-                this.chartData = chartData;
+            }
+            
+            generateDifficultChart() {
+                const notes = [];
+                const lanes = ['D', 'F', 'K', 'L'];
+                
+                // イントロ（0-8秒）- 基本パターン
+                for (let t = 0.5; t < 8; t += 0.5) {
+                    notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 2) + 1] });
+                }
+                
+                // メインセクション1（8-40秒）- 難易度中
+                for (let t = 8; t < 40; t += 0.3) {
+                    if (Math.random() > 0.4) {
+                        notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                    }
+                }
+                
+                // 間奏（40-50秒）- 少し休憩
+                for (let t = 40; t < 50; t += 0.7) {
+                    notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 2) + 1] });
+                }
+                
+                // メインセクション2（50-100秒）- 難易度高
+                for (let t = 50; t < 100; t += 0.25) {
+                    if (Math.random() > 0.3) {
+                        notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                    }
+                }
+                
+                // 中間部（100-140秒）- 複雑なパターン
+                for (let t = 100; t < 140; t += 0.2) {
+                    if (Math.random() > 0.25) {
+                        notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                    }
+                }
+                
+                // クライマックス（140-180秒）- 高難易度
+                for (let t = 140; t < 180; t += 0.15) {
+                    if (Math.random() > 0.2) {
+                        notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                    }
+                }
+                
+                // アウトロ（180-217秒）- 徐々に減少
+                for (let t = 180; t < 217; t += 0.4) {
+                    if (Math.random() > 0.5) {
+                        notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 3) + 1] });
+                    }
+                }
+                
+                return notes.sort((a, b) => a.time - b.time);
+            }
+            
+            getLaneFromChart(laneLetter) {
+                const laneMap = { 'D': 0, 'F': 1, 'K': 2, 'L': 3 };
+                return laneMap[laneLetter] || 0;
             }
 
             async setupAudio() {
@@ -525,10 +576,11 @@
                     const fallDistance = this.canvas.height + 100; // 画面上部から判定ラインまで + 余裕
                     const spawnTime = chartNote.time - fallDistance / this.settings.noteSpeed;
                     
-                    if (this.currentTime >= spawnTime) {
+                    // 曲開始前（currentTime < 0）にはノートを表示しない
+                    if (this.currentTime >= Math.max(0, spawnTime)) {
                         this.notes.push({
                             time: chartNote.time,
-                            lane: chartNote.lane === 'S' ? 1 : chartNote.lane === 'A' ? 0 : 2, // A=0(左), S=1(中央), D=2(右)
+                            lane: this.getLaneFromChart(chartNote.lane),
                             y: -100, // 画面上部から開始
                             hit: false
                         });
@@ -579,7 +631,7 @@
                     }
                 }
 
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 4; i++) {
                     this.effects.laneGlow[i] *= 0.85;
                 }
             }
@@ -595,14 +647,14 @@
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 
                 // レーン
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 4; i++) {
                     const x = i * this.settings.laneWidth;
                     const glow = this.effects.laneGlow[i];
                     
                     this.ctx.fillStyle = `rgba(255, 255, 255, ${0.08 + glow * 0.2})`;
                     this.ctx.fillRect(x, 0, this.settings.laneWidth, this.canvas.height);
                     
-                    if (i < 2) {
+                    if (i < 3) {
                         this.ctx.strokeStyle = `rgba(255, 255, 255, ${0.2 + glow * 0.3})`;
                         this.ctx.lineWidth = 1;
                         this.ctx.beginPath();
