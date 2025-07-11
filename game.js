@@ -22,6 +22,7 @@ class PipipiRhythmGame {
         this.noteIndex = 0;
         this.notes = [];
         this.particles = [];
+        this.currentSong = 'pipipipi_soda'; // デフォルト楽曲
         
         // ゲーム設定
         this.settings = {
@@ -55,12 +56,36 @@ class PipipiRhythmGame {
             goodDots: []
         };
         
+        this.songs = {
+            'pipipipi_soda': {
+                title: 'ぴぴぴソーダ',
+                artist: 'pa9wo',
+                duration: 211.944,
+                bpm: 150,
+                audioFile: './pipipipi_soda.mp3',
+                chartData: null
+            },
+            'antithesis': {
+                title: 'Antithesis',
+                artist: 'pa9wo',
+                duration: 129.96,
+                bpm: 130,
+                audioFile: './Antithesis.mp3',
+                chartData: null
+            }
+        };
+        
         this.init();
     }
     
     getLaneFromChart(laneLetter) {
-        const laneMap = { 'D': 0, 'F': 1, 'K': 2, 'L': 3 };
-        return laneMap[laneLetter] || 0;
+        const laneMap = { 'D': 0, 'F': 1, 'K': 2, 'L': 3, 'S': 0, 'A': 1 };
+        const lane = laneMap[laneLetter];
+        if (lane === undefined) {
+            console.warn('Unknown lane letter:', laneLetter, 'defaulting to lane 0');
+            return 0;
+        }
+        return lane;
     }
 
     loadKeybinds() {
@@ -97,8 +122,7 @@ class PipipiRhythmGame {
     async init() {
         this.setupCanvas();
         this.setupEventListeners();
-        await this.loadChart();
-        this.setupAudio();
+        // 初期化時は音声を読み込まない（楽曲選択時に読み込む）
         this.resizeCanvas();
         this.render();
     }
@@ -158,7 +182,9 @@ class PipipiRhythmGame {
         });
 
         // UI controls
-        document.getElementById('startBtn').addEventListener('click', () => this.startGame());
+        document.getElementById('songSelectBtn').addEventListener('click', () => this.showSongSelect());
+        document.getElementById('startGameBtn').addEventListener('click', () => this.startGame());
+        document.getElementById('backToMenuBtn').addEventListener('click', () => this.backToMenu());
         document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
         document.getElementById('retryBtn').addEventListener('click', () => this.retryGame());
         document.getElementById('settingsBtn').addEventListener('click', () => this.showSettings());
@@ -187,15 +213,47 @@ class PipipiRhythmGame {
                 }
             });
         }
+        
+        // 楽曲選択のイベント
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.song-item')) {
+                const songItem = e.target.closest('.song-item');
+                const songId = songItem.dataset.song;
+                console.log('Song item clicked:', songId);
+                this.selectSong(songId);
+            }
+        });
     }
 
     async loadChart() {
-        // 5レーン対応の大幅に難しくしたチャートデータ
-        this.chartData = {
-            "songInfo": {"title": "pipipiソーダ", "artist": "pa9wo", "duration": 211.944, "bpm": 150},
-            "chart": this.generatePipipiSodaChart()
-        };
+        // 選択された楽曲のチャートデータを読み込み
+        await this.loadSongData();
         console.log('Chart loaded:', this.chartData);
+    }
+    
+    async loadSongData() {
+        const song = this.songs[this.currentSong];
+        if (!song) {
+            throw new Error(`Song not found: ${this.currentSong}`);
+        }
+        
+        console.log('Loading chart data for:', this.currentSong);
+        
+        if (this.currentSong === 'pipipipi_soda') {
+            // 既存の生成されたチャートデータを使用
+            this.chartData = {
+                "songInfo": {"title": "ぴぴぴソーダ", "artist": "pa9wo", "duration": 211.944, "bpm": 150},
+                "chart": this.generatePipipiSodaChart()
+            };
+            console.log('Generated pipipipi_soda chart with', this.chartData.chart.length, 'notes');
+        } else if (this.currentSong === 'antithesis') {
+            // JSONファイルは3レーンシステムなので、代わりに生成された4レーンチャートを使用
+            console.log('Using generated 4-lane chart for better gameplay');
+            this.chartData = {
+                "songInfo": {"title": "Antithesis", "artist": "pa9wo", "duration": 129.96, "bpm": 130},
+                "chart": this.generateAntithesisChart()
+            };
+        }
     }
     
     generatePipipiSodaChart() {
@@ -371,12 +429,28 @@ class PipipiRhythmGame {
             }
         }
     }
+    
 
     async setupAudio() {
         try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // AudioContextを初期化（まだ作成されていない場合）
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
             
-            const response = await fetch('./pipipipi_soda.mp3');
+            // Suspendedの場合はresume
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+            
+            const song = this.songs[this.currentSong];
+            console.log('Loading audio file:', song.audioFile);
+            
+            const response = await fetch(song.audioFile);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch audio file: ${response.status} ${response.statusText}`);
+            }
+            
             const audioData = await response.arrayBuffer();
             this.audioBuffer = await this.audioContext.decodeAudioData(audioData);
             
@@ -389,48 +463,79 @@ class PipipiRhythmGame {
             this.audioSettings.volumeNode = this.audioContext.createGain();
             this.audioSettings.volumeNode.gain.value = this.audioSettings.masterVolume;
             
-            console.log('Audio loaded successfully');
+            console.log('Audio loaded successfully:', song.title);
         } catch (error) {
             console.error('Failed to load audio:', error);
+            throw error;
         }
     }
 
     async startGame() {
-        if (!this.audioBuffer) {
-            alert('Audio not loaded yet. Please try again.');
-            return;
-        }
+        try {
+            console.log('Starting game with song:', this.currentSong);
+            
+            // 楽曲データを読み込み
+            await this.changeSong(this.currentSong);
+            
+            if (!this.audioBuffer) {
+                console.error('Audio buffer is null after loading');
+                alert('Audio not loaded yet. Please try again.');
+                return;
+            }
 
-        document.getElementById('startScreen').style.display = 'none';
-        this.gameState = 'playing';
-        this.score = 0;
-        this.combo = 0;
-        this.noteIndex = 0;
-        this.notes = [];
-        this.particles = [];
-        this.startTime = Date.now();
-        this.pausedTime = 0;
-        this.animationId = null;
-        
-        // オーディオ再生
-        await this.playAudio();
-        
-        this.updateUI();
-        this.gameLoop();
+            document.getElementById('songSelectScreen').style.display = 'none';
+            this.gameState = 'playing';
+            this.score = 0;
+            this.combo = 0;
+            this.noteIndex = 0;
+            this.notes = [];
+            this.particles = [];
+            this.startTime = Date.now();
+            this.pausedTime = 0;
+            this.animationId = null;
+            
+            console.log('Starting audio playback...');
+            // オーディオ再生
+            await this.playAudio();
+            
+            this.updateUI();
+            this.gameLoop();
+            console.log('Game started successfully');
+        } catch (error) {
+            console.error('Error starting game:', error);
+            console.error('Error stack:', error.stack);
+            alert(`Failed to start game: ${error.message}\nPlease check console for details.`);
+        }
     }
 
     async playAudio() {
-        if (this.audioContext.state === 'suspended') {
-            await this.audioContext.resume();
+        try {
+            if (this.audioContext.state === 'suspended') {
+                console.log('Resuming audio context...');
+                await this.audioContext.resume();
+            }
+            
+            console.log('Creating audio source...');
+            this.audioSource = this.audioContext.createBufferSource();
+            this.audioSource.buffer = this.audioBuffer;
+            
+            // オーディオグラフを接続
+            this.audioSource.connect(this.audioSettings.volumeNode);
+            this.audioSettings.volumeNode.connect(this.analyser);
+            this.analyser.connect(this.audioContext.destination);
+            
+            console.log('Starting audio playback...');
+            this.audioSource.start();
+            
+            // オーディオ終了時の処理
+            this.audioSource.onended = () => {
+                console.log('Audio playback ended');
+                this.gameState = 'finished';
+            };
+        } catch (error) {
+            console.error('Error in playAudio:', error);
+            throw error;
         }
-        
-        this.audioSource = this.audioContext.createBufferSource();
-        this.audioSource.buffer = this.audioBuffer;
-        this.audioSource.connect(this.audioSettings.volumeNode);
-        this.audioSettings.volumeNode.connect(this.analyser);
-        this.analyser.connect(this.audioContext.destination);
-        
-        this.audioSource.start();
     }
 
     togglePause() {
@@ -466,7 +571,78 @@ class PipipiRhythmGame {
         if (this.audioContext) {
             this.audioContext.resume();
         }
+        document.getElementById('songSelectScreen').style.display = 'flex';
+    }
+    
+    showSongSelect() {
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('songSelectScreen').style.display = 'flex';
+        this.updateSongList();
+        
+        // デフォルトで最初の楽曲を選択状態にする
+        if (!document.querySelector('.song-item.selected')) {
+            this.selectSong(this.currentSong);
+        }
+    }
+    
+    backToMenu() {
+        document.getElementById('songSelectScreen').style.display = 'none';
         document.getElementById('startScreen').style.display = 'flex';
+    }
+    
+    selectSong(songId) {
+        console.log('Selecting song:', songId);
+        
+        // 既存の選択を解除
+        document.querySelectorAll('.song-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // 新しい選択を追加
+        const selectedItem = document.querySelector(`[data-song="${songId}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+            this.currentSong = songId;
+            console.log('Song selected:', songId);
+        } else {
+            console.error('Song item not found:', songId);
+        }
+    }
+    
+    updateSongList() {
+        // 現在選択されている楽曲をハイライト
+        document.querySelectorAll('.song-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        const currentItem = document.querySelector(`[data-song="${this.currentSong}"]`);
+        if (currentItem) {
+            currentItem.classList.add('selected');
+        }
+    }
+    
+    async changeSong(songId) {
+        try {
+            this.currentSong = songId;
+            console.log('Loading song:', songId);
+            
+            // 古いオーディオソースを停止
+            if (this.audioSource) {
+                this.audioSource.stop();
+                this.audioSource = null;
+            }
+            
+            // チャートデータを読み込み
+            await this.loadChart();
+            
+            // 音声データを読み込み
+            await this.setupAudio();
+            
+            console.log('Song loaded successfully:', songId);
+        } catch (error) {
+            console.error('Error loading song:', error);
+            throw error;
+        }
     }
 
     setVolume(volume) {
@@ -924,6 +1100,325 @@ class PipipiRhythmGame {
         }
         
         this.ctx.globalAlpha = 1;
+    }
+    
+    generateAntithesisChart() {
+    console.log('Generating progressive difficulty Antithesis chart...');
+    const notes = [];
+    const lanes = ['D', 'F', 'K', 'L'];
+    const duration = 129.96;
+    const beatInterval = 60 / 130; // BPM 130
+    const sixteenthNote = beatInterval / 4;
+    const eighthNote = beatInterval / 2;
+    
+    // 基本パターン関数（第1章レベル）
+    const addBasicPattern = (startTime, endTime) => {
+        for (let t = startTime; t < endTime; t += beatInterval) {
+            const measure = Math.floor((t - startTime) / (beatInterval * 4)) % 4;
+            const beat = Math.floor((t - startTime) / beatInterval) % 4;
+            
+            switch(measure) {
+                case 0: // 基本メロディ
+                    if (beat === 0) {
+                        notes.push({ time: t, type: "tap", lane: lanes[0] });
+                    } else if (beat === 2) {
+                        notes.push({ time: t, type: "tap", lane: lanes[3] });
+                    } else if (beat === 1) {
+                        notes.push({ time: t, type: "tap", lane: lanes[1] });
+                    }
+                    break;
+                case 1: // 簡単なスケール
+                    for (let i = 0; i < 4; i++) {
+                        if (t + i * eighthNote < endTime) {
+                            notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[i] });
+                        }
+                    }
+                    break;
+                case 2: // 基本的な同時押し
+                    if (beat === 0) {
+                        notes.push({ time: t, type: "tap", lane: lanes[0] });
+                        notes.push({ time: t, type: "tap", lane: lanes[3] });
+                    } else if (beat === 2) {
+                        notes.push({ time: t, type: "tap", lane: lanes[1] });
+                        notes.push({ time: t, type: "tap", lane: lanes[2] });
+                    } else {
+                        notes.push({ time: t, type: "tap", lane: lanes[beat % 4] });
+                    }
+                    break;
+                case 3: // 簡単なロングノート
+                    if (beat === 0) {
+                        notes.push({ time: t, type: "hold", lane: lanes[1], duration: beatInterval * 1.5 });
+                        notes.push({ time: t + beatInterval, type: "tap", lane: lanes[2] });
+                    } else if (beat === 2) {
+                        notes.push({ time: t, type: "tap", lane: lanes[0] });
+                    }
+                    break;
+            }
+        }
+    };
+    
+    // イントロ（0-30秒）- 第1章レベル
+    addBasicPattern(0.8, 30);
+    
+    // 中間部（30-85秒）- 第1章レベル維持
+    addBasicPattern(30, 85);
+    
+    // クライマックス（85-110秒）- だんだん地獄になっていく
+    for (let t = 85; t < 110; t += beatInterval) {
+        const progress = (t - 85) / (110 - 85); // 0から1への進行度
+        const intensity = Math.floor(progress * 10) + 1; // 1-10の強度
+        const pattern = Math.floor((t - 85) / (beatInterval * 2)) % 8;
+        
+        if (progress < 0.2) {
+            // 85-90秒: 第1章よりちょっと難しく
+            if (pattern % 2 === 0) {
+                // 16分音符導入
+                for (let i = 0; i < 6; i++) {
+                    if (t + i * sixteenthNote < Math.min(t + beatInterval, 110)) {
+                        notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[i % 4] });
+                    }
+                }
+            } else {
+                // 同時押し強化
+                notes.push({ time: t, type: "tap", lane: lanes[0] });
+                notes.push({ time: t, type: "tap", lane: lanes[3] });
+                notes.push({ time: t + eighthNote, type: "tap", lane: lanes[1] });
+                notes.push({ time: t + eighthNote, type: "tap", lane: lanes[2] });
+            }
+        } else if (progress < 0.4) {
+            // 90-95秒: 中程度の複雑さ
+            switch(pattern % 4) {
+                case 0: // トリプレット
+                    for (let i = 0; i < 3; i++) {
+                        if (t + i * (beatInterval/3) < 110) {
+                            notes.push({ time: t + i * (beatInterval/3), type: "tap", lane: lanes[(i + 1) % 4] });
+                        }
+                    }
+                    break;
+                case 1: // スパイラル
+                    const spiral = [0, 1, 2, 3, 2, 1];
+                    for (let i = 0; i < spiral.length; i++) {
+                        if (t + i * sixteenthNote < 110) {
+                            notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[spiral[i]] });
+                        }
+                    }
+                    break;
+                case 2: // ホールドコンボ
+                    notes.push({ time: t, type: "hold", lane: lanes[0], duration: beatInterval * 2 });
+                    for (let i = 0; i < 4; i++) {
+                        if (t + (i + 1) * (sixteenthNote * 2) < 110) {
+                            notes.push({ time: t + (i + 1) * (sixteenthNote * 2), type: "tap", lane: lanes[(i + 2) % 4] });
+                        }
+                    }
+                    break;
+                case 3: // 交互同時押し
+                    notes.push({ time: t, type: "tap", lane: lanes[0] });
+                    notes.push({ time: t, type: "tap", lane: lanes[1] });
+                    notes.push({ time: t + eighthNote, type: "tap", lane: lanes[2] });
+                    notes.push({ time: t + eighthNote, type: "tap", lane: lanes[3] });
+                    break;
+            }
+        } else if (progress < 0.6) {
+            // 95-100秒: 高密度
+            switch(pattern % 3) {
+                case 0: // 高速スケール
+                    for (let i = 0; i < 8; i++) {
+                        if (t + i * (sixteenthNote/2) < 110) {
+                            notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[i % 4] });
+                        }
+                    }
+                    break;
+                case 1: // デュアルホールド
+                    notes.push({ time: t, type: "hold", lane: lanes[0], duration: beatInterval * 2 });
+                    notes.push({ time: t, type: "hold", lane: lanes[3], duration: beatInterval * 2 });
+                    for (let i = 0; i < 6; i++) {
+                        if (t + i * sixteenthNote < 110) {
+                            notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[1 + (i % 2)] });
+                        }
+                    }
+                    break;
+                case 2: // ジグザグ強化
+                    const zigzag = [0, 2, 1, 3, 0, 2, 1, 3];
+                    for (let i = 0; i < zigzag.length; i++) {
+                        if (t + i * (sixteenthNote/2) < 110) {
+                            notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[zigzag[i]] });
+                        }
+                    }
+                    break;
+            }
+        } else if (progress < 0.8) {
+            // 100-105秒: 地獄級
+            switch(pattern % 4) {
+                case 0: // 全レーン同時 + 追加
+                    for (let i = 0; i < 4; i++) {
+                        notes.push({ time: t, type: "tap", lane: lanes[i] });
+                    }
+                    for (let i = 0; i < 8; i++) {
+                        if (t + (i + 2) * (sixteenthNote/2) < 110) {
+                            notes.push({ time: t + (i + 2) * (sixteenthNote/2), type: "tap", lane: lanes[i % 4] });
+                        }
+                    }
+                    break;
+                case 1: // カオスストーム
+                    for (let i = 0; i < 12; i++) {
+                        if (t + i * (sixteenthNote/2) < 110) {
+                            notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                        }
+                    }
+                    break;
+                case 2: // マッドネス
+                    const madness = [[0,3], [1,2], [0,1,2,3], [2], [1,3], [0]];
+                    for (let i = 0; i < madness.length; i++) {
+                        if (t + i * sixteenthNote < 110) {
+                            for (const lane of madness[i]) {
+                                notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[lane] });
+                            }
+                        }
+                    }
+                    break;
+                case 3: // 超高速スケール
+                    for (let i = 0; i < 16; i++) {
+                        if (t + i * (sixteenthNote/4) < 110) {
+                            notes.push({ time: t + i * (sixteenthNote/4), type: "tap", lane: lanes[i % 4] });
+                        }
+                    }
+                    break;
+            }
+        } else {
+            // 105-110秒: 絶対地獄
+            switch(pattern % 3) {
+                case 0: // アポカリプス
+                    for (let i = 0; i < 24; i++) {
+                        if (t + i * (sixteenthNote/4) < 110) {
+                            notes.push({ time: t + i * (sixteenthNote/4), type: "tap", lane: lanes[i % 4] });
+                        }
+                    }
+                    break;
+                case 1: // クアッドホールド地獄
+                    for (let i = 0; i < 4; i++) {
+                        notes.push({ time: t, type: "hold", lane: lanes[i], duration: beatInterval * 2 });
+                    }
+                    for (let i = 0; i < 16; i++) {
+                        if (t + i * (sixteenthNote/3) < 110) {
+                            notes.push({ time: t + i * (sixteenthNote/3), type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                        }
+                    }
+                    break;
+                case 2: // インフィニティ
+                    for (let i = 0; i < 32; i++) {
+                        if (t + i * (sixteenthNote/6) < 110) {
+                            const laneIndex = Math.floor(Math.sin(i * 0.3) * 1.5 + 1.5);
+                            notes.push({ time: t + i * (sixteenthNote/6), type: "tap", lane: lanes[laneIndex] });
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+    
+    // フィナーレ（110秒-終了）- 最高潮から壮大な結末へ
+    for (let t = 110; t < duration - 5; t += beatInterval) {
+        const finaleProgress = (t - 110) / (duration - 5 - 110); // 0から1への進行度
+        const pattern = Math.floor((t - 110) / (beatInterval * 2)) % 6;
+        
+        if (finaleProgress < 0.3) {
+            // 110-115秒: 最高潮維持
+            switch(pattern % 3) {
+                case 0: // エピローグ全レーン攻撃
+                    for (let i = 0; i < 4; i++) {
+                        notes.push({ time: t, type: "tap", lane: lanes[i] });
+                    }
+                    for (let i = 0; i < 12; i++) {
+                        if (t + (i + 4) * (sixteenthNote/2) < duration - 5) {
+                            notes.push({ time: t + (i + 4) * (sixteenthNote/2), type: "tap", lane: lanes[i % 4] });
+                        }
+                    }
+                    break;
+                case 1: // グランドフィナーレ
+                    for (let i = 0; i < 16; i++) {
+                        if (t + i * (sixteenthNote/2) < duration - 5) {
+                            if (i % 4 === 0) {
+                                for (let j = 0; j < 4; j++) {
+                                    notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[j] });
+                                }
+                            } else {
+                                notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[i % 4] });
+                            }
+                        }
+                    }
+                    break;
+                case 2: // ラストチャンス
+                    for (let i = 0; i < 20; i++) {
+                        if (t + i * (sixteenthNote/3) < duration - 5) {
+                            notes.push({ time: t + i * (sixteenthNote/3), type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                        }
+                    }
+                    break;
+            }
+        } else if (finaleProgress < 0.6) {
+            // 115-120秒: 徐々にクールダウン
+            switch(pattern % 3) {
+                case 0: // クライマックスエコー
+                    const echo = [0,1,2,3,2,1,0,3,1,2,3,0,3,2,1,0];
+                    for (let i = 0; i < echo.length; i++) {
+                        if (t + i * eighthNote < duration - 5) {
+                            notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[echo[i]] });
+                        }
+                    }
+                    break;
+                case 1: // フェードアウト開始
+                    for (let i = 0; i < 8; i++) {
+                        if (t + i * (sixteenthNote) < duration - 5) {
+                            notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[i % 4] });
+                        }
+                    }
+                    break;
+                case 2: // 静寂への準備
+                    for (let i = 0; i < 6; i++) {
+                        if (t + i * eighthNote < duration - 5) {
+                            notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[i % 4] });
+                        }
+                    }
+                    break;
+            }
+        } else {
+            // 120-125秒: 静寂の中の音
+            if (Math.floor(finaleProgress * 20) % 3 === 0) {
+                // 時々だけノート
+                notes.push({ time: t, type: "tap", lane: lanes[0] });
+                notes.push({ time: t, type: "tap", lane: lanes[3] });
+            } else if (Math.floor(finaleProgress * 20) % 5 === 0) {
+                // さらに稀に中央
+                notes.push({ time: t, type: "tap", lane: lanes[1] });
+                notes.push({ time: t, type: "tap", lane: lanes[2] });
+            }
+        }
+    }
+    
+    // 最終5秒 - 絶対的終焉
+    const finalStart = duration - 5;
+    
+    // 全レーン同時攻撃
+    for (let t = finalStart; t < finalStart + 2; t += beatInterval/4) {
+        for (let i = 0; i < 4; i++) {
+            notes.push({ time: t, type: "tap", lane: lanes[i] });
+        }
+    }
+    
+    // スケールアップ
+    for (let t = finalStart + 2; t < finalStart + 4; t += beatInterval/8) {
+        const laneIndex = Math.floor((t - (finalStart + 2)) * 32) % 4;
+        notes.push({ time: t, type: "tap", lane: lanes[laneIndex] });
+    }
+    
+    // 究極の終焉
+    for (let i = 0; i < 4; i++) {
+        notes.push({ time: duration - 0.5, type: "tap", lane: lanes[i] });
+        notes.push({ time: duration - 0.1, type: "tap", lane: lanes[i] });
+    }
+    
+    console.log('Generated', notes.length, 'notes for complex Antithesis');
+    return notes.sort((a, b) => a.time - b.time);
     }
 }
 

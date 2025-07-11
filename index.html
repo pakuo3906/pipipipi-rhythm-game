@@ -308,6 +308,77 @@
             outline: none;
         }
 
+        .song-select-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(64, 224, 208, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
+                linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(10, 10, 10, 0.98) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 25;
+            backdrop-filter: blur(20px);
+        }
+
+        .song-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .song-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(145deg, rgba(40, 40, 40, 0.8), rgba(20, 20, 20, 0.8));
+            border: 2px solid rgba(64, 224, 208, 0.2);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .song-item:hover {
+            border-color: rgba(64, 224, 208, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(64, 224, 208, 0.2);
+        }
+
+        .song-item.selected {
+            border-color: rgba(64, 224, 208, 0.8);
+            background: linear-gradient(145deg, rgba(64, 224, 208, 0.1), rgba(40, 40, 40, 0.8));
+            box-shadow: 0 0 20px rgba(64, 224, 208, 0.3);
+        }
+
+        .song-info h3 {
+            margin: 0 0 10px 0;
+            color: #ffffff;
+            font-size: 20px;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+
+        .song-info p {
+            margin: 5px 0;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        .difficulty-indicator {
+            color: #ffd700;
+            font-size: 18px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
         @media (max-width: 768px) {
             .game-container {
                 max-width: 100%;
@@ -337,6 +408,18 @@
                 width: 40px !important;
                 height: 40px !important;
                 font-size: 16px !important;
+            }
+
+            .song-select-screen > div {
+                margin: 20px;
+                padding: 30px !important;
+                max-width: 90% !important;
+            }
+
+            .song-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
             }
         }
     </style>
@@ -373,7 +456,42 @@
                 <strong>D</strong>（左）、<strong>F</strong>（左中）、<strong>K</strong>（右中）、<strong>L</strong>（右）キーまたは画面をタップ<br>
                 高密度ノーツでリズム体験を楽しんで！
             </p>
-            <button class="start-btn" id="startBtn">ゲームスタート</button>
+            <button class="start-btn" id="songSelectBtn">楽曲選択</button>
+        </div>
+
+        <div class="song-select-screen" id="songSelectScreen" style="display: none;">
+            <div style="background: rgba(0, 0, 0, 0.95); padding: 40px; border-radius: 20px; max-width: 700px; backdrop-filter: blur(10px);">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #40e0d0; font-size: 32px; text-shadow: 0 0 10px rgba(64, 224, 208, 0.8);">🎵 楽曲選択 🎵</h2>
+                
+                <div class="song-list" id="songList">
+                    <div class="song-item" data-song="pipipipi_soda">
+                        <div class="song-info">
+                            <h3>ぴぴぴソーダ</h3>
+                            <p>Artist: pa9wo</p>
+                            <p>Duration: 3:31 | BPM: 150</p>
+                        </div>
+                        <div class="song-preview">
+                            <div class="difficulty-indicator">★★★☆☆</div>
+                        </div>
+                    </div>
+                    
+                    <div class="song-item" data-song="antithesis">
+                        <div class="song-info">
+                            <h3>Antithesis</h3>
+                            <p>Artist: pa9wo</p>
+                            <p>Duration: 2:09 | BPM: 130</p>
+                        </div>
+                        <div class="song-preview">
+                            <div class="difficulty-indicator">★★★★★</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                    <button class="start-btn" id="startGameBtn">ゲームスタート</button>
+                    <button class="control-btn" id="backToMenuBtn">メニューに戻る</button>
+                </div>
+            </div>
         </div>
 
         <div class="settings-screen" id="settingsScreen" style="display: none;">
