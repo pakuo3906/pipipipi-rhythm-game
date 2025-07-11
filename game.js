@@ -190,6 +190,38 @@ class PipipiRhythmGame {
             }
         });
 
+        // マルチタッチ対応
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // スクロールや拡大縮小を防ぐ
+            
+            if (this.gameState !== 'playing') return;
+            
+            const rect = this.canvas.getBoundingClientRect();
+            
+            // 複数のタッチポイントを処理
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                const x = touch.clientX - rect.left;
+                const lane = Math.floor(x / this.settings.laneWidth);
+                
+                if (lane >= 0 && lane < 4) {
+                    this.handleInput(lane);
+                    // タッチフィードバック
+                    this.addTouchFeedback(lane);
+                }
+            }
+        }, { passive: false });
+
+        // タッチムーブでの意図しない入力を防ぐ
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        // タッチエンド時の処理（必要に応じて）
+        this.canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
         // UI controls
         document.getElementById('songSelectBtn').addEventListener('click', () => this.showSongSelect());
         document.getElementById('startGameBtn').addEventListener('click', () => this.startGame());
@@ -1540,6 +1572,29 @@ class PipipiRhythmGame {
             }
             this.gameState = 'start';
         };
+    }
+    
+    addTouchFeedback(lane) {
+        // レーンの光る効果を強めに設定
+        this.effects.laneGlow[lane] = Math.max(this.effects.laneGlow[lane], 1.0);
+        
+        // タッチポイントにリップル効果を追加
+        if (this.settings.lanePositions[lane]) {
+            this.effects.ripples.push({
+                x: this.settings.lanePositions[lane],
+                y: this.settings.judgeLineY,
+                radius: 0,
+                maxRadius: 60,
+                color: '#40e0d0',
+                life: 0.5,
+                type: 'touch'
+            });
+        }
+        
+        // バイブレーション（対応デバイスのみ）
+        if (navigator.vibrate) {
+            navigator.vibrate(20); // 20ms の短いバイブレーション
+        }
     }
 }
 

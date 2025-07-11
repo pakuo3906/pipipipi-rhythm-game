@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pipipipi Rhythm Game</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
@@ -21,6 +21,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            touch-action: none; /* タッチでのスクロールやズームを無効化 */
+            -webkit-touch-callout: none; /* 長押しメニューを無効化 */
+            -webkit-user-select: none; /* テキスト選択を無効化 */
+            user-select: none;
         }
 
         .game-container {
@@ -653,28 +657,126 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                height: 100vh;
+                height: 100dvh; /* 動的ビューポート高さ */
+                overflow: hidden;
+            }
+
             .game-container {
                 max-width: 100%;
                 max-height: 100%;
+                width: 100vw;
+                height: 100vh;
+                height: 100dvh;
+            }
+
+            #gameCanvas {
+                width: 100% !important;
+                height: 100% !important;
+                border-radius: 0;
+                border: none;
+            }
+            
+            .start-screen {
+                padding: 20px;
             }
             
             .start-screen h1 {
-                font-size: 32px;
+                font-size: 28px;
+                margin-bottom: 20px;
             }
             
             .start-screen p {
-                font-size: 16px;
-                padding: 0 20px;
+                font-size: 14px;
+                padding: 0 15px;
+                line-height: 1.4;
+                margin-bottom: 30px;
+            }
+
+            .start-btn {
+                padding: 15px 30px;
+                font-size: 18px;
+                min-height: 50px;
             }
             
             .score-display, .combo-display {
+                font-size: 16px;
+                top: 10px;
+                padding: 8px 15px;
+            }
+
+            .score-display {
+                left: 10px;
+            }
+
+            .combo-display {
+                right: 10px;
+            }
+
+            .controls {
+                bottom: 10px;
+                padding: 0 10px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .control-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-height: 40px;
+                min-width: 60px;
+            }
+
+            .volume-control {
+                margin-left: 0 !important;
+                margin-top: 10px;
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* 楽曲選択画面 */
+            .song-select-screen > div {
+                padding: 20px !important;
+                margin: 10px;
+                max-width: 95% !important;
+            }
+
+            .song-select-screen h2 {
+                font-size: 24px !important;
+                margin-bottom: 20px !important;
+            }
+
+            .song-item {
+                padding: 15px !important;
+                margin: 10px 0;
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+
+            .song-info h3 {
                 font-size: 18px;
             }
 
+            .song-info p {
+                font-size: 12px;
+            }
+
+            .difficulty-indicator {
+                font-size: 16px;
+            }
+
+            /* 設定画面 */
             .settings-screen > div {
-                margin: 20px;
-                padding: 30px !important;
-                max-width: 90% !important;
+                margin: 10px;
+                padding: 20px !important;
+                max-width: 95% !important;
+            }
+
+            .settings-screen h2 {
+                font-size: 24px;
+                margin-bottom: 20px;
             }
 
             .settings-screen .key-input {
@@ -683,16 +785,124 @@
                 font-size: 16px !important;
             }
 
-            .song-select-screen > div {
-                margin: 20px;
-                padding: 30px !important;
-                max-width: 90% !important;
+            /* リザルト画面 */
+            .result-container {
+                padding: 20px !important;
+                width: 95% !important;
+                max-width: 95% !important;
+                margin: 10px;
             }
 
-            .song-item {
+            .result-header h2 {
+                font-size: 28px !important;
+                margin-bottom: 15px !important;
+            }
+
+            .rank-display {
+                width: 80px !important;
+                height: 80px !important;
+                line-height: 75px !important;
+                font-size: 60px !important;
+            }
+
+            .song-info-result h3 {
+                font-size: 20px;
+            }
+
+            .song-info-result p {
+                font-size: 14px;
+            }
+
+            .score-section {
                 flex-direction: column;
-                text-align: center;
+                gap: 15px;
+            }
+
+            .final-score, .max-combo {
+                padding: 15px;
+            }
+
+            .score-value, .combo-value {
+                font-size: 24px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
                 gap: 10px;
+            }
+
+            .stat-item {
+                padding: 10px;
+            }
+
+            .stat-count {
+                font-size: 20px;
+            }
+
+            .stat-label {
+                font-size: 10px;
+            }
+
+            .accuracy-value {
+                font-size: 18px;
+            }
+
+            .result-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .result-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+                width: 100%;
+            }
+
+            /* 判定表示 */
+            .judgment-display {
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                font-size: 24px !important;
+            }
+        }
+
+        /* 非常に小さい画面用 */
+        @media (max-width: 480px) {
+            .start-screen h1 {
+                font-size: 24px;
+            }
+
+            .start-screen p {
+                font-size: 12px;
+                padding: 0 10px;
+            }
+
+            .result-container {
+                padding: 15px !important;
+            }
+
+            .result-header h2 {
+                font-size: 24px !important;
+            }
+
+            .rank-display {
+                width: 70px !important;
+                height: 70px !important;
+                line-height: 65px !important;
+                font-size: 50px !important;
+            }
+
+            .stats-grid {
+                gap: 8px;
+            }
+
+            .stat-item {
+                padding: 8px;
+            }
+
+            .stat-count {
+                font-size: 18px;
             }
         }
     </style>
