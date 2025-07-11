@@ -1103,7 +1103,7 @@ class PipipiRhythmGame {
     }
     
     generateAntithesisChart() {
-    console.log('Generating progressive difficulty Antithesis chart...');
+    console.log('Generating varied pattern Antithesis chart...');
     const notes = [];
     const lanes = ['D', 'F', 'K', 'L'];
     const duration = 129.96;
@@ -1111,311 +1111,292 @@ class PipipiRhythmGame {
     const sixteenthNote = beatInterval / 4;
     const eighthNote = beatInterval / 2;
     
-    // 基本パターン関数（第1章レベル）
-    const addBasicPattern = (startTime, endTime) => {
+    // バリエーション豊富なパターン関数
+    const addVariedPattern = (startTime, endTime) => {
         for (let t = startTime; t < endTime; t += beatInterval) {
-            const measure = Math.floor((t - startTime) / (beatInterval * 4)) % 4;
+            const patternType = Math.floor((t - startTime) / (beatInterval * 4)) % 12; // 12種類のパターン
             const beat = Math.floor((t - startTime) / beatInterval) % 4;
             
-            switch(measure) {
-                case 0: // 基本メロディ
-                    if (beat === 0) {
-                        notes.push({ time: t, type: "tap", lane: lanes[0] });
-                    } else if (beat === 2) {
-                        notes.push({ time: t, type: "tap", lane: lanes[3] });
-                    } else if (beat === 1) {
-                        notes.push({ time: t, type: "tap", lane: lanes[1] });
+            switch(patternType) {
+                case 0: // メロディックライン
+                    const melody1 = [0, 1, 2, 1, 3, 2, 1, 0];
+                    const melodyIndex = Math.floor((t - startTime) / beatInterval) % melody1.length;
+                    if (beat % 2 === 0) {
+                        notes.push({ time: t, type: "tap", lane: lanes[melody1[melodyIndex]] });
                     }
                     break;
-                case 1: // 簡単なスケール
+                case 1: // アルペジオパターン
+                    if (beat === 0) {
+                        notes.push({ time: t, type: "tap", lane: lanes[0] });
+                        notes.push({ time: t + eighthNote, type: "tap", lane: lanes[2] });
+                    } else if (beat === 2) {
+                        notes.push({ time: t, type: "tap", lane: lanes[1] });
+                        notes.push({ time: t + eighthNote, type: "tap", lane: lanes[3] });
+                    }
+                    break;
+                case 2: // 階段パターン
                     for (let i = 0; i < 4; i++) {
                         if (t + i * eighthNote < endTime) {
                             notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[i] });
                         }
                     }
                     break;
-                case 2: // 基本的な同時押し
-                    if (beat === 0) {
-                        notes.push({ time: t, type: "tap", lane: lanes[0] });
-                        notes.push({ time: t, type: "tap", lane: lanes[3] });
-                    } else if (beat === 2) {
-                        notes.push({ time: t, type: "tap", lane: lanes[1] });
-                        notes.push({ time: t, type: "tap", lane: lanes[2] });
-                    } else {
-                        notes.push({ time: t, type: "tap", lane: lanes[beat % 4] });
+                case 3: // 逆階段パターン
+                    for (let i = 0; i < 4; i++) {
+                        if (t + i * eighthNote < endTime) {
+                            notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[3-i] });
+                        }
                     }
                     break;
-                case 3: // 簡単なロングノート
+                case 4: // 交互パターン
+                    if (beat % 2 === 0) {
+                        notes.push({ time: t, type: "tap", lane: lanes[0] });
+                        notes.push({ time: t + eighthNote, type: "tap", lane: lanes[3] });
+                    } else {
+                        notes.push({ time: t, type: "tap", lane: lanes[1] });
+                        notes.push({ time: t + eighthNote, type: "tap", lane: lanes[2] });
+                    }
+                    break;
+                case 5: // ブラケットパターン
+                    if (beat === 0 || beat === 3) {
+                        notes.push({ time: t, type: "tap", lane: lanes[0] });
+                        notes.push({ time: t, type: "tap", lane: lanes[3] });
+                    } else {
+                        notes.push({ time: t, type: "tap", lane: lanes[beat] });
+                    }
+                    break;
+                case 6: // ホールドコンビネーション
                     if (beat === 0) {
-                        notes.push({ time: t, type: "hold", lane: lanes[1], duration: beatInterval * 1.5 });
-                        notes.push({ time: t + beatInterval, type: "tap", lane: lanes[2] });
+                        notes.push({ time: t, type: "hold", lane: lanes[1], duration: beatInterval * 2 });
+                        notes.push({ time: t + eighthNote, type: "tap", lane: lanes[0] });
+                        notes.push({ time: t + beatInterval, type: "tap", lane: lanes[3] });
+                        notes.push({ time: t + beatInterval + eighthNote, type: "tap", lane: lanes[2] });
+                    }
+                    break;
+                case 7: // ジグザグパターン
+                    const zigzag = [0, 2, 1, 3];
+                    for (let i = 0; i < 4; i++) {
+                        if (t + i * eighthNote < endTime) {
+                            notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[zigzag[i]] });
+                        }
+                    }
+                    break;
+                case 8: // リズミカルパターン
+                    if (beat === 0) {
+                        notes.push({ time: t, type: "tap", lane: lanes[1] });
+                        notes.push({ time: t + sixteenthNote, type: "tap", lane: lanes[2] });
+                        notes.push({ time: t + eighthNote, type: "tap", lane: lanes[1] });
                     } else if (beat === 2) {
                         notes.push({ time: t, type: "tap", lane: lanes[0] });
+                        notes.push({ time: t + eighthNote, type: "tap", lane: lanes[3] });
+                    }
+                    break;
+                case 9: // ウェーブパターン
+                    const wave = [1, 2, 1, 0, 1, 2, 3, 2];
+                    const waveIndex = Math.floor((t - startTime) / (eighthNote)) % wave.length;
+                    if (beat % 2 === 0) {
+                        notes.push({ time: t, type: "tap", lane: lanes[wave[waveIndex]] });
+                    }
+                    break;
+                case 10: // トリプルタップ
+                    if (beat === 0) {
+                        notes.push({ time: t, type: "tap", lane: lanes[0] });
+                        notes.push({ time: t + sixteenthNote, type: "tap", lane: lanes[1] });
+                        notes.push({ time: t + sixteenthNote * 2, type: "tap", lane: lanes[2] });
+                    } else if (beat === 2) {
+                        notes.push({ time: t, type: "tap", lane: lanes[3] });
+                    }
+                    break;
+                case 11: // スパース（まばら）パターン
+                    if (beat === 1) {
+                        notes.push({ time: t, type: "tap", lane: lanes[Math.floor((t - startTime) / beatInterval) % 4] });
                     }
                     break;
             }
         }
     };
     
-    // イントロ（0-30秒）- 第1章レベル
-    addBasicPattern(0.8, 30);
+    // イントロ（0-30秒）- バリエーション豊富
+    addVariedPattern(0.8, 30);
     
-    // 中間部（30-85秒）- 第1章レベル維持
-    addBasicPattern(30, 85);
+    // 中間部（30-85秒）- さらに多様なパターン
+    addVariedPattern(30, 85);
     
-    // クライマックス（85-110秒）- だんだん地獄になっていく
+    // クライマックス（85-110秒）- 同じ難易度だが少しだけ密度を上げる
     for (let t = 85; t < 110; t += beatInterval) {
-        const progress = (t - 85) / (110 - 85); // 0から1への進行度
-        const intensity = Math.floor(progress * 10) + 1; // 1-10の強度
         const pattern = Math.floor((t - 85) / (beatInterval * 2)) % 8;
+        const beat = Math.floor((t - 85) / beatInterval) % 4;
         
-        if (progress < 0.2) {
-            // 85-90秒: 第1章よりちょっと難しく
-            if (pattern % 2 === 0) {
-                // 16分音符導入
+        switch(pattern) {
+            case 0: // 強化メロディ
+                const melody = [0, 1, 3, 2, 1, 0, 2, 3];
+                const melodyIndex = Math.floor((t - 85) / beatInterval) % melody.length;
+                notes.push({ time: t, type: "tap", lane: lanes[melody[melodyIndex]] });
+                if (beat % 2 === 1) {
+                    notes.push({ time: t + eighthNote, type: "tap", lane: lanes[(melodyIndex + 2) % 4] });
+                }
+                break;
+            case 1: // 階段＋同時押し
+                for (let i = 0; i < 4; i++) {
+                    if (t + i * eighthNote < 110) {
+                        notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[i] });
+                    }
+                }
+                if (beat === 3) {
+                    notes.push({ time: t + beatInterval, type: "tap", lane: lanes[0] });
+                    notes.push({ time: t + beatInterval, type: "tap", lane: lanes[3] });
+                }
+                break;
+            case 2: // ホールド＋タップ
+                if (beat === 0) {
+                    notes.push({ time: t, type: "hold", lane: lanes[0], duration: beatInterval * 1.5 });
+                    notes.push({ time: t + eighthNote, type: "tap", lane: lanes[2] });
+                    notes.push({ time: t + beatInterval, type: "tap", lane: lanes[1] });
+                } else if (beat === 2) {
+                    notes.push({ time: t, type: "tap", lane: lanes[3] });
+                }
+                break;
+            case 3: // リズミカル強化
+                const rhythm = [[1], [2, 3], [], [0, 1]];
+                for (const lane of rhythm[beat]) {
+                    notes.push({ time: t, type: "tap", lane: lanes[lane] });
+                }
+                break;
+            case 4: // ジグザグ強化
+                const zigzagPattern = [0, 2, 1, 3, 0, 2];
                 for (let i = 0; i < 6; i++) {
-                    if (t + i * sixteenthNote < Math.min(t + beatInterval, 110)) {
+                    if (t + i * sixteenthNote < 110) {
+                        notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[zigzagPattern[i]] });
+                    }
+                }
+                break;
+            case 5: // ブラケット強化
+                if (beat === 0) {
+                    notes.push({ time: t, type: "tap", lane: lanes[0] });
+                    notes.push({ time: t, type: "tap", lane: lanes[3] });
+                    notes.push({ time: t + eighthNote, type: "tap", lane: lanes[1] });
+                    notes.push({ time: t + eighthNote, type: "tap", lane: lanes[2] });
+                } else {
+                    notes.push({ time: t, type: "tap", lane: lanes[beat % 4] });
+                }
+                break;
+            case 6: // ウェーブ強化
+                const wavePattern = [1, 0, 2, 3, 2, 1];
+                for (let i = 0; i < wavePattern.length; i++) {
+                    if (t + i * sixteenthNote < 110) {
+                        notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[wavePattern[i]] });
+                    }
+                }
+                break;
+            case 7: // ランダムコンビネーション
+                const randomPattern = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+                for (let i = 0; i < 4; i++) {
+                    if (t + i * eighthNote < 110) {
+                        notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[randomPattern[i]] });
+                    }
+                }
+                break;
+        }
+    }
+    
+    // フィナーレ（110秒-終了）- 壮大で挑戦的な結末
+    for (let t = 110; t < duration - 5; t += beatInterval) {
+        const finaleProgress = (t - 110) / (duration - 5 - 110); // 0から1への進行度
+        const pattern = Math.floor((t - 110) / (beatInterval * 2)) % 8;
+        
+        switch(pattern) {
+            case 0: // 全レーン同時押し + フォロー
+                for (let i = 0; i < 4; i++) {
+                    notes.push({ time: t, type: "tap", lane: lanes[i] });
+                }
+                notes.push({ time: t + eighthNote, type: "tap", lane: lanes[1] });
+                notes.push({ time: t + beatInterval - eighthNote, type: "tap", lane: lanes[2] });
+                break;
+            case 1: // 高速スケール
+                for (let i = 0; i < 8; i++) {
+                    if (t + i * sixteenthNote < duration - 5) {
                         notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[i % 4] });
                     }
                 }
-            } else {
-                // 同時押し強化
-                notes.push({ time: t, type: "tap", lane: lanes[0] });
-                notes.push({ time: t, type: "tap", lane: lanes[3] });
-                notes.push({ time: t + eighthNote, type: "tap", lane: lanes[1] });
-                notes.push({ time: t + eighthNote, type: "tap", lane: lanes[2] });
-            }
-        } else if (progress < 0.4) {
-            // 90-95秒: 中程度の複雑さ
-            switch(pattern % 4) {
-                case 0: // トリプレット
-                    for (let i = 0; i < 3; i++) {
-                        if (t + i * (beatInterval/3) < 110) {
-                            notes.push({ time: t + i * (beatInterval/3), type: "tap", lane: lanes[(i + 1) % 4] });
-                        }
+                break;
+            case 2: // デュアルホールド + タップ
+                notes.push({ time: t, type: "hold", lane: lanes[0], duration: beatInterval * 2 });
+                notes.push({ time: t, type: "hold", lane: lanes[3], duration: beatInterval * 2 });
+                for (let i = 0; i < 8; i++) {
+                    if (t + i * sixteenthNote < duration - 5) {
+                        notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[1 + (i % 2)] });
                     }
-                    break;
-                case 1: // スパイラル
-                    const spiral = [0, 1, 2, 3, 2, 1];
-                    for (let i = 0; i < spiral.length; i++) {
-                        if (t + i * sixteenthNote < 110) {
-                            notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[spiral[i]] });
-                        }
+                }
+                break;
+            case 3: // ジグザグ高速
+                const zigzagFast = [0, 2, 1, 3, 0, 2, 1, 3, 0, 2];
+                for (let i = 0; i < zigzagFast.length; i++) {
+                    if (t + i * (sixteenthNote/2) < duration - 5) {
+                        notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[zigzagFast[i]] });
                     }
-                    break;
-                case 2: // ホールドコンボ
-                    notes.push({ time: t, type: "hold", lane: lanes[0], duration: beatInterval * 2 });
-                    for (let i = 0; i < 4; i++) {
-                        if (t + (i + 1) * (sixteenthNote * 2) < 110) {
-                            notes.push({ time: t + (i + 1) * (sixteenthNote * 2), type: "tap", lane: lanes[(i + 2) % 4] });
-                        }
+                }
+                break;
+            case 4: // カオスストーム（制御版）
+                for (let i = 0; i < 10; i++) {
+                    if (t + i * (sixteenthNote) < duration - 5) {
+                        const laneIndex = (i * 3 + 1) % 4; // ランダムより予測可能
+                        notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[laneIndex] });
                     }
-                    break;
-                case 3: // 交互同時押し
-                    notes.push({ time: t, type: "tap", lane: lanes[0] });
-                    notes.push({ time: t, type: "tap", lane: lanes[1] });
-                    notes.push({ time: t + eighthNote, type: "tap", lane: lanes[2] });
-                    notes.push({ time: t + eighthNote, type: "tap", lane: lanes[3] });
-                    break;
-            }
-        } else if (progress < 0.6) {
-            // 95-100秒: 高密度
-            switch(pattern % 3) {
-                case 0: // 高速スケール
-                    for (let i = 0; i < 8; i++) {
-                        if (t + i * (sixteenthNote/2) < 110) {
-                            notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[i % 4] });
-                        }
+                }
+                break;
+            case 5: // トリプレット + 同時押し
+                for (let i = 0; i < 3; i++) {
+                    if (t + i * (beatInterval/3) < duration - 5) {
+                        notes.push({ time: t + i * (beatInterval/3), type: "tap", lane: lanes[i] });
                     }
-                    break;
-                case 1: // デュアルホールド
-                    notes.push({ time: t, type: "hold", lane: lanes[0], duration: beatInterval * 2 });
-                    notes.push({ time: t, type: "hold", lane: lanes[3], duration: beatInterval * 2 });
-                    for (let i = 0; i < 6; i++) {
-                        if (t + i * sixteenthNote < 110) {
-                            notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[1 + (i % 2)] });
-                        }
+                }
+                notes.push({ time: t + beatInterval, type: "tap", lane: lanes[0] });
+                notes.push({ time: t + beatInterval, type: "tap", lane: lanes[3] });
+                break;
+            case 6: // スパイラル + ホールド
+                notes.push({ time: t, type: "hold", lane: lanes[1], duration: beatInterval * 1.5 });
+                const spiral = [0, 3, 2, 0, 3, 2];
+                for (let i = 0; i < spiral.length; i++) {
+                    if (t + (i + 2) * sixteenthNote < duration - 5) {
+                        notes.push({ time: t + (i + 2) * sixteenthNote, type: "tap", lane: lanes[spiral[i]] });
                     }
-                    break;
-                case 2: // ジグザグ強化
-                    const zigzag = [0, 2, 1, 3, 0, 2, 1, 3];
-                    for (let i = 0; i < zigzag.length; i++) {
-                        if (t + i * (sixteenthNote/2) < 110) {
-                            notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[zigzag[i]] });
-                        }
+                }
+                break;
+            case 7: // グランドフィナーレ階段
+                const stairPattern = [0, 1, 2, 3, 2, 1, 0, 3];
+                for (let i = 0; i < stairPattern.length; i++) {
+                    if (t + i * eighthNote < duration - 5) {
+                        notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[stairPattern[i]] });
                     }
-                    break;
-            }
-        } else if (progress < 0.8) {
-            // 100-105秒: 地獄級
-            switch(pattern % 4) {
-                case 0: // 全レーン同時 + 追加
-                    for (let i = 0; i < 4; i++) {
-                        notes.push({ time: t, type: "tap", lane: lanes[i] });
-                    }
-                    for (let i = 0; i < 8; i++) {
-                        if (t + (i + 2) * (sixteenthNote/2) < 110) {
-                            notes.push({ time: t + (i + 2) * (sixteenthNote/2), type: "tap", lane: lanes[i % 4] });
-                        }
-                    }
-                    break;
-                case 1: // カオスストーム
-                    for (let i = 0; i < 12; i++) {
-                        if (t + i * (sixteenthNote/2) < 110) {
-                            notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
-                        }
-                    }
-                    break;
-                case 2: // マッドネス
-                    const madness = [[0,3], [1,2], [0,1,2,3], [2], [1,3], [0]];
-                    for (let i = 0; i < madness.length; i++) {
-                        if (t + i * sixteenthNote < 110) {
-                            for (const lane of madness[i]) {
-                                notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[lane] });
-                            }
-                        }
-                    }
-                    break;
-                case 3: // 超高速スケール
-                    for (let i = 0; i < 16; i++) {
-                        if (t + i * (sixteenthNote/4) < 110) {
-                            notes.push({ time: t + i * (sixteenthNote/4), type: "tap", lane: lanes[i % 4] });
-                        }
-                    }
-                    break;
-            }
-        } else {
-            // 105-110秒: 絶対地獄
-            switch(pattern % 3) {
-                case 0: // アポカリプス
-                    for (let i = 0; i < 24; i++) {
-                        if (t + i * (sixteenthNote/4) < 110) {
-                            notes.push({ time: t + i * (sixteenthNote/4), type: "tap", lane: lanes[i % 4] });
-                        }
-                    }
-                    break;
-                case 1: // クアッドホールド地獄
-                    for (let i = 0; i < 4; i++) {
-                        notes.push({ time: t, type: "hold", lane: lanes[i], duration: beatInterval * 2 });
-                    }
-                    for (let i = 0; i < 16; i++) {
-                        if (t + i * (sixteenthNote/3) < 110) {
-                            notes.push({ time: t + i * (sixteenthNote/3), type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
-                        }
-                    }
-                    break;
-                case 2: // インフィニティ
-                    for (let i = 0; i < 32; i++) {
-                        if (t + i * (sixteenthNote/6) < 110) {
-                            const laneIndex = Math.floor(Math.sin(i * 0.3) * 1.5 + 1.5);
-                            notes.push({ time: t + i * (sixteenthNote/6), type: "tap", lane: lanes[laneIndex] });
-                        }
-                    }
-                    break;
-            }
+                }
+                break;
         }
     }
     
-    // フィナーレ（110秒-終了）- 最高潮から壮大な結末へ
-    for (let t = 110; t < duration - 5; t += beatInterval) {
-        const finaleProgress = (t - 110) / (duration - 5 - 110); // 0から1への進行度
-        const pattern = Math.floor((t - 110) / (beatInterval * 2)) % 6;
-        
-        if (finaleProgress < 0.3) {
-            // 110-115秒: 最高潮維持
-            switch(pattern % 3) {
-                case 0: // エピローグ全レーン攻撃
-                    for (let i = 0; i < 4; i++) {
-                        notes.push({ time: t, type: "tap", lane: lanes[i] });
-                    }
-                    for (let i = 0; i < 12; i++) {
-                        if (t + (i + 4) * (sixteenthNote/2) < duration - 5) {
-                            notes.push({ time: t + (i + 4) * (sixteenthNote/2), type: "tap", lane: lanes[i % 4] });
-                        }
-                    }
-                    break;
-                case 1: // グランドフィナーレ
-                    for (let i = 0; i < 16; i++) {
-                        if (t + i * (sixteenthNote/2) < duration - 5) {
-                            if (i % 4 === 0) {
-                                for (let j = 0; j < 4; j++) {
-                                    notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[j] });
-                                }
-                            } else {
-                                notes.push({ time: t + i * (sixteenthNote/2), type: "tap", lane: lanes[i % 4] });
-                            }
-                        }
-                    }
-                    break;
-                case 2: // ラストチャンス
-                    for (let i = 0; i < 20; i++) {
-                        if (t + i * (sixteenthNote/3) < duration - 5) {
-                            notes.push({ time: t + i * (sixteenthNote/3), type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
-                        }
-                    }
-                    break;
-            }
-        } else if (finaleProgress < 0.6) {
-            // 115-120秒: 徐々にクールダウン
-            switch(pattern % 3) {
-                case 0: // クライマックスエコー
-                    const echo = [0,1,2,3,2,1,0,3,1,2,3,0,3,2,1,0];
-                    for (let i = 0; i < echo.length; i++) {
-                        if (t + i * eighthNote < duration - 5) {
-                            notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[echo[i]] });
-                        }
-                    }
-                    break;
-                case 1: // フェードアウト開始
-                    for (let i = 0; i < 8; i++) {
-                        if (t + i * (sixteenthNote) < duration - 5) {
-                            notes.push({ time: t + i * sixteenthNote, type: "tap", lane: lanes[i % 4] });
-                        }
-                    }
-                    break;
-                case 2: // 静寂への準備
-                    for (let i = 0; i < 6; i++) {
-                        if (t + i * eighthNote < duration - 5) {
-                            notes.push({ time: t + i * eighthNote, type: "tap", lane: lanes[i % 4] });
-                        }
-                    }
-                    break;
-            }
-        } else {
-            // 120-125秒: 静寂の中の音
-            if (Math.floor(finaleProgress * 20) % 3 === 0) {
-                // 時々だけノート
-                notes.push({ time: t, type: "tap", lane: lanes[0] });
-                notes.push({ time: t, type: "tap", lane: lanes[3] });
-            } else if (Math.floor(finaleProgress * 20) % 5 === 0) {
-                // さらに稀に中央
-                notes.push({ time: t, type: "tap", lane: lanes[1] });
-                notes.push({ time: t, type: "tap", lane: lanes[2] });
-            }
-        }
-    }
-    
-    // 最終5秒 - 絶対的終焉
+    // 最終5秒 - 壮大なフィナーレ
     const finalStart = duration - 5;
     
-    // 全レーン同時攻撃
-    for (let t = finalStart; t < finalStart + 2; t += beatInterval/4) {
+    // 段階的に全レーン攻撃
+    for (let t = finalStart; t < finalStart + 2; t += beatInterval/2) {
         for (let i = 0; i < 4; i++) {
             notes.push({ time: t, type: "tap", lane: lanes[i] });
         }
     }
     
-    // スケールアップ
-    for (let t = finalStart + 2; t < finalStart + 4; t += beatInterval/8) {
-        const laneIndex = Math.floor((t - (finalStart + 2)) * 32) % 4;
+    // 最終スケール
+    for (let t = finalStart + 2; t < finalStart + 4; t += eighthNote) {
+        const laneIndex = Math.floor((t - (finalStart + 2)) * 8) % 4;
         notes.push({ time: t, type: "tap", lane: lanes[laneIndex] });
+        if ((t - (finalStart + 2)) > 1) { // 最後の1秒は同時押し追加
+            notes.push({ time: t, type: "tap", lane: lanes[3 - laneIndex] });
+        }
     }
     
-    // 究極の終焉
-    for (let i = 0; i < 4; i++) {
-        notes.push({ time: duration - 0.5, type: "tap", lane: lanes[i] });
-        notes.push({ time: duration - 0.1, type: "tap", lane: lanes[i] });
-    }
+    // 究極の終焉（同時押し）
+    notes.push({ time: duration - 0.5, type: "tap", lane: lanes[0] });
+    notes.push({ time: duration - 0.5, type: "tap", lane: lanes[3] });
+    notes.push({ time: duration - 0.1, type: "tap", lane: lanes[1] });
+    notes.push({ time: duration - 0.1, type: "tap", lane: lanes[2] });
     
     console.log('Generated', notes.length, 'notes for complex Antithesis');
     return notes.sort((a, b) => a.time - b.time);
