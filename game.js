@@ -9,13 +9,22 @@ class PipipiRhythmGame {
         this.frequencyData = null;
         
         // ゲーム状態
-        this.gameState = 'start'; // start, playing, paused
+        this.gameState = 'start'; // start, playing, paused, finished
         this.score = 0;
         this.combo = 0;
+        this.maxCombo = 0;
         this.startTime = 0;
         this.currentTime = 0;
         this.pausedTime = 0;
         this.animationId = null;
+        
+        // 判定統計
+        this.stats = {
+            perfect: 0,
+            good: 0,
+            miss: 0,
+            totalNotes: 0
+        };
         
         // Chart data
         this.chartData = null;
@@ -487,9 +496,19 @@ class PipipiRhythmGame {
             this.gameState = 'playing';
             this.score = 0;
             this.combo = 0;
+            this.maxCombo = 0;
             this.noteIndex = 0;
             this.notes = [];
             this.particles = [];
+            
+            // 統計をリセット
+            this.stats = {
+                perfect: 0,
+                good: 0,
+                miss: 0,
+                totalNotes: this.chartData.chart.length
+            };
+            
             this.startTime = Date.now();
             this.pausedTime = 0;
             this.animationId = null;
@@ -531,6 +550,7 @@ class PipipiRhythmGame {
             this.audioSource.onended = () => {
                 console.log('Audio playback ended');
                 this.gameState = 'finished';
+                this.showResultScreen();
             };
         } catch (error) {
             console.error('Error in playAudio:', error);
@@ -732,15 +752,21 @@ class PipipiRhythmGame {
             judgment = 'perfect';
             points = 300;
             this.combo++;
+            this.stats.perfect++;
         } else if (distance <= this.settings.judgeWindow.good) {
             judgment = 'good';
             points = 100;
             this.combo++;
+            this.stats.good++;
         } else {
             judgment = 'miss';
             points = 0;
             this.combo = 0;
+            this.stats.miss++;
         }
+
+        // 最大コンボ更新
+        this.maxCombo = Math.max(this.maxCombo, this.combo);
 
         note.hit = true;
         this.score += points * (1 + this.combo * 0.1);
@@ -869,6 +895,7 @@ class PipipiRhythmGame {
             if (note.y > this.settings.judgeLineY + 50 && !note.hit) {
                 note.hit = true;
                 this.combo = 0;
+                this.stats.miss++;
                 this.showJudgment('miss');
                 this.updateUI();
             }
@@ -1400,6 +1427,119 @@ class PipipiRhythmGame {
     
     console.log('Generated', notes.length, 'notes for complex Antithesis');
     return notes.sort((a, b) => a.time - b.time);
+    }
+    
+    calculateRank() {
+        const accuracy = this.calculateAccuracy();
+        
+        if (accuracy >= 95) return 'S';
+        if (accuracy >= 85) return 'A';
+        if (accuracy >= 70) return 'B';
+        if (accuracy >= 50) return 'C';
+        return 'D';
+    }
+    
+    calculateAccuracy() {
+        const totalHits = this.stats.perfect + this.stats.good + this.stats.miss;
+        if (totalHits === 0) return 100;
+        
+        const accurateHits = this.stats.perfect + this.stats.good * 0.5; // Perfectは100%、Goodは50%の価値
+        return Math.round((accurateHits / totalHits) * 100 * 10) / 10; // 小数点第一位まで
+    }
+    
+    showResultScreen() {
+        console.log('Showing result screen');
+        
+        // リザルト画面を表示
+        document.getElementById('resultScreen').style.display = 'flex';
+        
+        // 楽曲情報を設定
+        const song = this.songs[this.currentSong];
+        document.getElementById('resultSongTitle').textContent = song.title;
+        document.getElementById('resultSongArtist').textContent = song.artist;
+        
+        // スコア情報を設定
+        document.getElementById('finalScore').textContent = Math.floor(this.score).toLocaleString();
+        document.getElementById('finalMaxCombo').textContent = this.maxCombo;
+        
+        // 統計情報を設定
+        document.getElementById('perfectCount').textContent = this.stats.perfect;
+        document.getElementById('goodCount').textContent = this.stats.good;
+        document.getElementById('missCount').textContent = this.stats.miss;
+        
+        // 精度を計算・表示
+        const accuracy = this.calculateAccuracy();
+        document.getElementById('accuracyValue').textContent = accuracy + '%';
+        
+        // ランクを計算・表示
+        const rank = this.calculateRank();
+        const rankDisplay = document.getElementById('rankDisplay');
+        rankDisplay.textContent = rank;
+        
+        // ランクに応じた色とアニメーション
+        rankDisplay.className = 'rank-display rank-' + rank.toLowerCase();
+        
+        // 紙吹雪エフェクト（S/Aランクの場合）
+        if (rank === 'S' || rank === 'A') {
+            this.showConfetti();
+        }
+        
+        // ボタンイベントを設定
+        this.setupResultButtons();
+    }
+    
+    showConfetti() {
+        // 紙吹雪エフェクト
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+        
+        // 少し遅れて追加の紙吹雪
+        setTimeout(() => {
+            confetti({
+                particleCount: 50,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 }
+            });
+        }, 500);
+        
+        setTimeout(() => {
+            confetti({
+                particleCount: 50,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 }
+            });
+        }, 1000);
+    }
+    
+    setupResultButtons() {
+        // リトライボタン
+        document.getElementById('resultRetryBtn').onclick = () => {
+            document.getElementById('resultScreen').style.display = 'none';
+            this.startGame();
+        };
+        
+        // 楽曲選択ボタン
+        document.getElementById('resultSongSelectBtn').onclick = () => {
+            document.getElementById('resultScreen').style.display = 'none';
+            this.showSongSelect();
+        };
+        
+        // メニューボタン
+        document.getElementById('resultMenuBtn').onclick = () => {
+            document.getElementById('resultScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'flex';
+            // オーディオを停止
+            if (this.audioSource) {
+                this.audioSource.stop();
+                this.audioSource = null;
+            }
+            this.gameState = 'start';
+        };
     }
 }
 

@@ -379,6 +379,279 @@
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
 
+        /* Result Screen Styles */
+        .result-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(64, 224, 208, 0.1) 0%, transparent 50%),
+                linear-gradient(135deg, rgba(0, 0, 0, 0.98) 0%, rgba(10, 10, 10, 0.98) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            backdrop-filter: blur(20px);
+            animation: fadeIn 0.5s ease;
+        }
+
+        .result-container {
+            background: linear-gradient(145deg, rgba(20, 20, 20, 0.95), rgba(40, 40, 40, 0.9));
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 
+                0 0 50px rgba(255, 215, 0, 0.2),
+                inset 0 0 50px rgba(255, 255, 255, 0.05);
+            animation: slideUp 0.6s ease;
+        }
+
+        .result-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .result-header h2 {
+            color: #ffd700;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .rank-display {
+            display: inline-block;
+            font-size: 80px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+            border: 4px solid #ffd700;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            line-height: 110px;
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .result-content {
+            margin-bottom: 30px;
+        }
+
+        .song-info-result {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .song-info-result h3 {
+            color: #40e0d0;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .song-info-result p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 16px;
+        }
+
+        .score-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            gap: 20px;
+        }
+
+        .final-score, .max-combo {
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(145deg, rgba(64, 224, 208, 0.1), rgba(0, 0, 0, 0.3));
+            border-radius: 15px;
+            border: 1px solid rgba(64, 224, 208, 0.3);
+        }
+
+        .score-label, .combo-label {
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .score-value, .combo-value {
+            display: block;
+            color: #40e0d0;
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(64, 224, 208, 0.5);
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+        }
+
+        .stat-item.perfect {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
+            border-color: rgba(255, 215, 0, 0.3);
+        }
+
+        .stat-item.good {
+            background: linear-gradient(145deg, rgba(0, 255, 127, 0.1), rgba(0, 255, 127, 0.05));
+            border-color: rgba(0, 255, 127, 0.3);
+        }
+
+        .stat-item.miss {
+            background: linear-gradient(145deg, rgba(255, 69, 58, 0.1), rgba(255, 69, 58, 0.05));
+            border-color: rgba(255, 69, 58, 0.3);
+        }
+
+        .stat-count {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .accuracy {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .accuracy-label {
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .accuracy-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .result-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .result-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, rgba(64, 224, 208, 0.8), rgba(64, 224, 208, 0.6));
+            color: #000000;
+            box-shadow: 0 4px 15px rgba(64, 224, 208, 0.3);
+        }
+
+        .result-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(64, 224, 208, 0.4);
+        }
+
+        .result-btn.retry-btn {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.8), rgba(255, 215, 0, 0.6));
+        }
+
+        .result-btn.menu-btn {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6));
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0; 
+                transform: translateY(50px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+            to { text-shadow: 0 0 30px rgba(255, 215, 0, 1), 0 0 40px rgba(255, 215, 0, 0.8); }
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        /* Rank-specific styles */
+        .rank-display.rank-s {
+            color: #ffd700;
+            border-color: #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+        }
+
+        .rank-display.rank-a {
+            color: #ff6b6b;
+            border-color: #ff6b6b;
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.8);
+        }
+
+        .rank-display.rank-b {
+            color: #4ecdc4;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 30px rgba(78, 205, 196, 0.8);
+        }
+
+        .rank-display.rank-c {
+            color: #95e1d3;
+            border-color: #95e1d3;
+            box-shadow: 0 0 30px rgba(149, 225, 211, 0.8);
+        }
+
+        .rank-display.rank-d {
+            color: #6c5ce7;
+            border-color: #6c5ce7;
+            box-shadow: 0 0 30px rgba(108, 92, 231, 0.8);
+        }
+
         @media (max-width: 768px) {
             .game-container {
                 max-width: 100%;
@@ -536,6 +809,60 @@
                     <button class="control-btn" id="saveSettingsBtn">保存</button>
                     <button class="control-btn" id="resetKeysBtn">デフォルトに戻す</button>
                     <button class="control-btn" id="closeSettingsBtn">閉じる</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-screen" id="resultScreen" style="display: none;">
+            <div class="result-container">
+                <div class="result-header">
+                    <h2>🎉 RESULT 🎉</h2>
+                    <div class="rank-display" id="rankDisplay">S</div>
+                </div>
+                
+                <div class="result-content">
+                    <div class="song-info-result">
+                        <h3 id="resultSongTitle">楽曲タイトル</h3>
+                        <p id="resultSongArtist">アーティスト</p>
+                    </div>
+                    
+                    <div class="score-section">
+                        <div class="final-score">
+                            <span class="score-label">SCORE</span>
+                            <span class="score-value" id="finalScore">0</span>
+                        </div>
+                        <div class="max-combo">
+                            <span class="combo-label">MAX COMBO</span>
+                            <span class="combo-value" id="finalMaxCombo">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-section">
+                        <div class="stats-grid">
+                            <div class="stat-item perfect">
+                                <div class="stat-count" id="perfectCount">0</div>
+                                <div class="stat-label">PERFECT</div>
+                            </div>
+                            <div class="stat-item good">
+                                <div class="stat-count" id="goodCount">0</div>
+                                <div class="stat-label">GOOD</div>
+                            </div>
+                            <div class="stat-item miss">
+                                <div class="stat-count" id="missCount">0</div>
+                                <div class="stat-label">MISS</div>
+                            </div>
+                        </div>
+                        <div class="accuracy">
+                            <span class="accuracy-label">ACCURACY</span>
+                            <span class="accuracy-value" id="accuracyValue">100.0%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-buttons">
+                    <button class="result-btn retry-btn" id="resultRetryBtn">🔄 RETRY</button>
+                    <button class="result-btn song-select-btn" id="resultSongSelectBtn">📂 楽曲選択</button>
+                    <button class="result-btn menu-btn" id="resultMenuBtn">🏠 メニュー</button>
                 </div>
             </div>
         </div>
