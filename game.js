@@ -32,6 +32,7 @@ class PipipiRhythmGame {
         this.notes = [];
         this.particles = [];
         this.currentSong = 'pipipipi_soda'; // デフォルト楽曲
+        this.currentDifficulty = 'normal'; // デフォルト難易度
         
         // ゲーム設定
         this.settings = {
@@ -65,6 +66,70 @@ class PipipiRhythmGame {
             goodDots: []
         };
         
+        // 難易度設定
+        this.difficulties = {
+            'easy': {
+                name: 'Easy',
+                stars: '★☆☆',
+                noteSpeedMultiplier: 0.8,
+                densityMultiplier: 0.5,
+                judgeWindow: {
+                    perfect: 0.15,
+                    good: 0.25,
+                    miss: 0.35
+                },
+                scoreMultiplier: 0.8
+            },
+            'normal': {
+                name: 'Normal',
+                stars: '★★☆',
+                noteSpeedMultiplier: 1.0,
+                densityMultiplier: 0.8,
+                judgeWindow: {
+                    perfect: 0.1,
+                    good: 0.2,
+                    miss: 0.3
+                },
+                scoreMultiplier: 1.0
+            },
+            'hard': {
+                name: 'Hard',
+                stars: '★★★',
+                noteSpeedMultiplier: 1.2,
+                densityMultiplier: 1.0,
+                judgeWindow: {
+                    perfect: 0.08,
+                    good: 0.15,
+                    miss: 0.25
+                },
+                scoreMultiplier: 1.2
+            },
+            'expert': {
+                name: 'Expert',
+                stars: '★★★★',
+                noteSpeedMultiplier: 1.4,
+                densityMultiplier: 1.3,
+                judgeWindow: {
+                    perfect: 0.06,
+                    good: 0.12,
+                    miss: 0.2
+                },
+                scoreMultiplier: 1.5
+            },
+            'master': {
+                name: 'Master',
+                stars: '★★★★★',
+                noteSpeedMultiplier: 1.6,
+                densityMultiplier: 1.5,
+                judgeWindow: {
+                    perfect: 0.05,
+                    good: 0.1,
+                    miss: 0.15
+                },
+                scoreMultiplier: 2.0
+            }
+        };
+        
         this.songs = {
             'pipipipi_soda': {
                 title: 'ぴぴぴソーダ',
@@ -72,6 +137,7 @@ class PipipiRhythmGame {
                 duration: 211.944,
                 bpm: 150,
                 audioFile: './pipipipi_soda.mp3',
+                availableDifficulties: ['easy', 'normal', 'hard', 'expert'],
                 chartData: null
             },
             'antithesis': {
@@ -80,6 +146,7 @@ class PipipiRhythmGame {
                 duration: 129.96,
                 bpm: 130,
                 audioFile: './Antithesis.mp3',
+                availableDifficulties: ['normal', 'hard', 'expert', 'master'],
                 chartData: null
             }
         };
@@ -257,7 +324,17 @@ class PipipiRhythmGame {
         
         // 楽曲選択のイベント
         document.addEventListener('click', (e) => {
-            if (e.target.closest('.song-item')) {
+            // 難易度ボタンのクリック
+            if (e.target.closest('.difficulty-btn')) {
+                e.stopPropagation();
+                const difficultyBtn = e.target.closest('.difficulty-btn');
+                const songId = difficultyBtn.dataset.song;
+                const difficulty = difficultyBtn.dataset.difficulty;
+                console.log('Difficulty button clicked:', songId, difficulty);
+                this.selectDifficulty(songId, difficulty);
+            }
+            // 楽曲アイテムのクリック（難易度ボタン以外）
+            else if (e.target.closest('.song-item')) {
                 const songItem = e.target.closest('.song-item');
                 const songId = songItem.dataset.song;
                 console.log('Song item clicked:', songId);
@@ -278,34 +355,68 @@ class PipipiRhythmGame {
             throw new Error(`Song not found: ${this.currentSong}`);
         }
         
-        console.log('Loading chart data for:', this.currentSong);
+        console.log('Loading chart data for:', this.currentSong, 'difficulty:', this.currentDifficulty);
         
         if (this.currentSong === 'pipipipi_soda') {
-            // 既存の生成されたチャートデータを使用
             this.chartData = {
                 "songInfo": {"title": "ぴぴぴソーダ", "artist": "pa9wo", "duration": 211.944, "bpm": 150},
-                "chart": this.generatePipipiSodaChart()
+                "chart": this.generatePipipiSodaChart(this.currentDifficulty)
             };
-            console.log('Generated pipipipi_soda chart with', this.chartData.chart.length, 'notes');
+            console.log('Generated pipipipi_soda chart with', this.chartData.chart.length, 'notes for difficulty:', this.currentDifficulty);
         } else if (this.currentSong === 'antithesis') {
-            // JSONファイルは3レーンシステムなので、代わりに生成された4レーンチャートを使用
-            console.log('Using generated 4-lane chart for better gameplay');
             this.chartData = {
                 "songInfo": {"title": "Antithesis", "artist": "pa9wo", "duration": 129.96, "bpm": 130},
-                "chart": this.generateAntithesisChart()
+                "chart": this.generateAntithesisChart(this.currentDifficulty)
             };
+            console.log('Generated antithesis chart with', this.chartData.chart.length, 'notes for difficulty:', this.currentDifficulty);
         }
     }
     
-    generatePipipiSodaChart() {
+    generatePipipiSodaChart(difficulty = 'normal') {
         const notes = [];
         const lanes = ['D', 'F', 'K', 'L'];
+        const difficultySettings = this.difficulties[difficulty];
         
-        // BPM 150に基づく拍間隔 (60/150 = 0.4秒) - 難易度を下げるため間隔を長めに
-        const beatInterval = 0.5;  // 0.4 → 0.5に変更
+        // BPM 150に基づく拍間隔を難易度に応じて調整
+        const baseBeatInterval = 60 / 150; // 0.4秒
+        const beatInterval = baseBeatInterval / difficultySettings.densityMultiplier;
         const halfBeat = beatInterval / 2;
         
-        // イントロ（0-8秒）- シンプルなメロディ
+        // 難易度に応じてパターンを選択
+        switch(difficulty) {
+            case 'easy':
+                this.addEasyPatterns(notes, lanes, beatInterval);
+                break;
+            case 'normal':
+                this.addNormalPatterns(notes, lanes, beatInterval);
+                break;
+            case 'hard':
+                this.addHardPatterns(notes, lanes, beatInterval);
+                break;
+            case 'expert':
+                this.addExpertPatterns(notes, lanes, beatInterval);
+                break;
+            default:
+                this.addNormalPatterns(notes, lanes, beatInterval);
+        }
+        
+        // 時間順にソート
+        return notes.sort((a, b) => a.time - b.time);
+    }
+    
+    addEasyPatterns(notes, lanes, beatInterval) {
+        // Easy: 非常にシンプルなパターン、密度低め
+        for (let t = 1; t < 210; t += beatInterval * 2) {
+            const lane = lanes[Math.floor(Math.random() * 4)];
+            notes.push({ time: t, type: "tap", lane });
+        }
+    }
+    
+    addNormalPatterns(notes, lanes, beatInterval) {
+        // Normal: 既存のパターンを使用
+        const halfBeat = beatInterval / 2;
+        
+        // イントロ（0-8秒）
         this.addEasyMelodyPattern(notes, 0, 8, lanes, [
             [0.5, ['F']], [1.0, ['K']], [1.5, ['F']], [2.0, ['D']],
             [2.5, ['K']], [3.0, ['L']], [3.5, ['K']], [4.0, ['F']],
@@ -313,26 +424,83 @@ class PipipiRhythmGame {
             [6.5, ['F']], [7.0, ['K']], [7.5, ['L']]
         ]);
         
-        // メインセクション1（8-40秒）- 基本的なメロディ
+        // メインセクション
         this.addSimplePattern(notes, 8, 40, lanes, beatInterval);
-        
-        // 間奏（40-55秒）- 交互パターン
         this.addAlternatePattern(notes, 40, 55, lanes, halfBeat);
-        
-        // メインセクション2（55-100秒）- 少し密度を上げる
         this.addMediumPattern(notes, 55, 100, lanes, beatInterval);
-        
-        // 中間部（100-140秒）- たまに同時押し
         this.addMildSyncPattern(notes, 100, 140, lanes, beatInterval);
-        
-        // クライマックス（140-180秒）- 適度な難易度
         this.addModerateClimaxPattern(notes, 140, 180, lanes, halfBeat);
-        
-        // アウトロ（180-211秒）- 余韻とフィニッシュ
         this.addEasyOutroPattern(notes, 180, 211, lanes, beatInterval);
+    }
+    
+    addHardPatterns(notes, lanes, beatInterval) {
+        // Hard: より密度の高いパターン
+        const quarterBeat = beatInterval / 4;
         
-        // 時間順にソート
-        return notes.sort((a, b) => a.time - b.time);
+        for (let t = 0.5; t < 210; t += beatInterval) {
+            const pattern = Math.floor(t / beatInterval) % 6;
+            
+            switch(pattern) {
+                case 0: // 階段パターン
+                    for (let i = 0; i < 4; i++) {
+                        notes.push({ time: t + i * quarterBeat, type: "tap", lane: lanes[i] });
+                    }
+                    break;
+                case 1: // 交互パターン
+                    notes.push({ time: t, type: "tap", lane: lanes[0] });
+                    notes.push({ time: t + quarterBeat * 2, type: "tap", lane: lanes[3] });
+                    break;
+                case 2: // 同時押し
+                    notes.push({ time: t, type: "tap", lane: lanes[1] });
+                    notes.push({ time: t, type: "tap", lane: lanes[2] });
+                    break;
+                case 3: // ホールドノート
+                    notes.push({ time: t, type: "hold", lane: lanes[Math.floor(Math.random() * 4)], duration: beatInterval });
+                    break;
+                case 4: // 連打
+                    for (let i = 0; i < 3; i++) {
+                        notes.push({ time: t + i * quarterBeat, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                    }
+                    break;
+                case 5: // ランダム
+                    notes.push({ time: t, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                    break;
+            }
+        }
+    }
+    
+    addExpertPatterns(notes, lanes, beatInterval) {
+        // Expert: 最高難易度のパターン
+        const sixteenthBeat = beatInterval / 4;
+        
+        for (let t = 0.5; t < 210; t += beatInterval / 2) {
+            const pattern = Math.floor(t / beatInterval) % 8;
+            
+            switch(pattern) {
+                case 0: // 高速階段
+                    for (let i = 0; i < 8; i++) {
+                        notes.push({ time: t + i * sixteenthBeat / 2, type: "tap", lane: lanes[i % 4] });
+                    }
+                    break;
+                case 1: // 複雑な同時押し
+                    notes.push({ time: t, type: "tap", lane: lanes[0] });
+                    notes.push({ time: t, type: "tap", lane: lanes[3] });
+                    notes.push({ time: t + sixteenthBeat, type: "tap", lane: lanes[1] });
+                    notes.push({ time: t + sixteenthBeat, type: "tap", lane: lanes[2] });
+                    break;
+                case 2: // ホールド + タップ
+                    notes.push({ time: t, type: "hold", lane: lanes[0], duration: beatInterval });
+                    for (let i = 1; i < 4; i++) {
+                        notes.push({ time: t + i * sixteenthBeat, type: "tap", lane: lanes[i] });
+                    }
+                    break;
+                default:
+                    // その他の複雑なパターン
+                    for (let i = 0; i < 6; i++) {
+                        notes.push({ time: t + i * sixteenthBeat, type: "tap", lane: lanes[Math.floor(Math.random() * 4)] });
+                    }
+            }
+        }
     }
     
     addEasyMelodyPattern(notes, startTime, endTime, lanes, pattern) {
@@ -513,7 +681,10 @@ class PipipiRhythmGame {
 
     async startGame() {
         try {
-            console.log('Starting game with song:', this.currentSong);
+            console.log('Starting game with song:', this.currentSong, 'difficulty:', this.currentDifficulty);
+            
+            // 難易度設定を適用
+            this.applyDifficultySettings();
             
             // 楽曲データを読み込み
             await this.changeSong(this.currentSong);
@@ -557,6 +728,22 @@ class PipipiRhythmGame {
             console.error('Error stack:', error.stack);
             alert(`Failed to start game: ${error.message}\nPlease check console for details.`);
         }
+    }
+    
+    applyDifficultySettings() {
+        const difficultySettings = this.difficulties[this.currentDifficulty];
+        
+        // ノート速度を調整
+        this.settings.noteSpeed = 300 * difficultySettings.noteSpeedMultiplier;
+        
+        // 判定窓を調整
+        this.settings.judgeWindow = {
+            perfect: difficultySettings.judgeWindow.perfect,
+            good: difficultySettings.judgeWindow.good,
+            miss: difficultySettings.judgeWindow.miss
+        };
+        
+        console.log('Applied difficulty settings:', this.currentDifficulty, difficultySettings);
     }
 
     async playAudio() {
@@ -631,10 +818,8 @@ class PipipiRhythmGame {
         document.getElementById('songSelectScreen').style.display = 'flex';
         this.updateSongList();
         
-        // デフォルトで最初の楽曲を選択状態にする
-        if (!document.querySelector('.song-item.selected')) {
-            this.selectSong(this.currentSong);
-        }
+        // デフォルトで最初の楽曲と難易度を選択状態にする
+        this.updateSongSelection();
     }
     
     backToMenu() {
@@ -642,35 +827,95 @@ class PipipiRhythmGame {
         document.getElementById('startScreen').style.display = 'flex';
     }
     
-    selectSong(songId) {
-        console.log('Selecting song:', songId);
+    selectSong(songId, difficulty = null) {
+        console.log('Selecting song:', songId, 'difficulty:', difficulty);
         
-        // 既存の選択を解除
+        this.currentSong = songId;
+        if (difficulty) {
+            this.currentDifficulty = difficulty;
+        } else {
+            // デフォルト難易度を設定
+            const song = this.songs[songId];
+            if (song && song.availableDifficulties.length > 0) {
+                this.currentDifficulty = song.availableDifficulties[0];
+            }
+        }
+        
+        this.updateSongSelection();
+        console.log('Song selected:', songId, 'difficulty:', this.currentDifficulty);
+    }
+    
+    selectDifficulty(songId, difficulty) {
+        console.log('Selecting difficulty:', songId, difficulty);
+        this.currentSong = songId;
+        this.currentDifficulty = difficulty;
+        this.updateSongSelection();
+    }
+    
+    updateSongSelection() {
+        // 楽曲選択状態を更新
         document.querySelectorAll('.song-item').forEach(item => {
             item.classList.remove('selected');
         });
         
-        // 新しい選択を追加
-        const selectedItem = document.querySelector(`[data-song="${songId}"]`);
-        if (selectedItem) {
-            selectedItem.classList.add('selected');
-            this.currentSong = songId;
-            console.log('Song selected:', songId);
-        } else {
-            console.error('Song item not found:', songId);
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // 選択された楽曲をハイライト
+        const selectedSongItem = document.querySelector(`[data-song="${this.currentSong}"]`);
+        if (selectedSongItem) {
+            selectedSongItem.classList.add('selected');
+        }
+        
+        // 選択された難易度をハイライト
+        const selectedDifficultyBtn = document.querySelector(`[data-song="${this.currentSong}"][data-difficulty="${this.currentDifficulty}"]`);
+        if (selectedDifficultyBtn) {
+            selectedDifficultyBtn.classList.add('selected');
         }
     }
     
     updateSongList() {
-        // 現在選択されている楽曲をハイライト
-        document.querySelectorAll('.song-item').forEach(item => {
-            item.classList.remove('selected');
-        });
+        const songListContainer = document.getElementById('songList');
+        songListContainer.innerHTML = '';
         
-        const currentItem = document.querySelector(`[data-song="${this.currentSong}"]`);
-        if (currentItem) {
-            currentItem.classList.add('selected');
-        }
+        Object.keys(this.songs).forEach(songId => {
+            const song = this.songs[songId];
+            const songElement = document.createElement('div');
+            songElement.className = 'song-item';
+            songElement.dataset.song = songId;
+            
+            const isSelected = songId === this.currentSong;
+            if (isSelected) {
+                songElement.classList.add('selected');
+            }
+            
+            songElement.innerHTML = `
+                <div class="song-header">
+                    <div class="song-info">
+                        <h3>${song.title}</h3>
+                        <p>Artist: ${song.artist}</p>
+                        <p>Duration: ${Math.floor(song.duration / 60)}:${Math.floor(song.duration % 60).toString().padStart(2, '0')} | BPM: ${song.bpm}</p>
+                    </div>
+                </div>
+                <div class="difficulty-selector">
+                    ${song.availableDifficulties.map(diffId => {
+                        const diff = this.difficulties[diffId];
+                        const isSelectedDiff = isSelected && diffId === this.currentDifficulty;
+                        return `
+                            <button class="difficulty-btn ${diffId} ${isSelectedDiff ? 'selected' : ''}" 
+                                    data-song="${songId}" 
+                                    data-difficulty="${diffId}">
+                                ${diff.name}<br>
+                                <small>${diff.stars}</small>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            songListContainer.appendChild(songElement);
+        });
     }
     
     async changeSong(songId) {
@@ -801,7 +1046,10 @@ class PipipiRhythmGame {
         this.maxCombo = Math.max(this.maxCombo, this.combo);
 
         note.hit = true;
-        this.score += points * (1 + this.combo * 0.1);
+        
+        // 難易度のスコア倍率を適用
+        const difficultySettings = this.difficulties[this.currentDifficulty];
+        this.score += points * (1 + this.combo * 0.1) * difficultySettings.scoreMultiplier;
         
         // エフェクト (missの場合は何もしない)
         if (judgment !== 'miss') {
@@ -1161,14 +1409,17 @@ class PipipiRhythmGame {
         this.ctx.globalAlpha = 1;
     }
     
-    generateAntithesisChart() {
-    console.log('Generating varied pattern Antithesis chart...');
-    const notes = [];
-    const lanes = ['D', 'F', 'K', 'L'];
-    const duration = 129.96;
-    const beatInterval = 60 / 130; // BPM 130
-    const sixteenthNote = beatInterval / 4;
-    const eighthNote = beatInterval / 2;
+    generateAntithesisChart(difficulty = 'hard') {
+        console.log('Generating varied pattern Antithesis chart for difficulty:', difficulty);
+        const notes = [];
+        const lanes = ['D', 'F', 'K', 'L'];
+        const duration = 129.96;
+        const difficultySettings = this.difficulties[difficulty];
+        
+        const baseBeatInterval = 60 / 130; // BPM 130
+        const beatInterval = baseBeatInterval / difficultySettings.densityMultiplier;
+        const sixteenthNote = beatInterval / 4;
+        const eighthNote = beatInterval / 2;
     
     // バリエーション豊富なパターン関数
     const addVariedPattern = (startTime, endTime) => {

@@ -341,8 +341,7 @@
 
         .song-item {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
             padding: 20px;
             background: linear-gradient(145deg, rgba(40, 40, 40, 0.8), rgba(20, 20, 20, 0.8));
             border: 2px solid rgba(64, 224, 208, 0.2);
@@ -350,6 +349,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             backdrop-filter: blur(5px);
+            margin-bottom: 15px;
         }
 
         .song-item:hover {
@@ -362,6 +362,66 @@
             border-color: rgba(64, 224, 208, 0.8);
             background: linear-gradient(145deg, rgba(64, 224, 208, 0.1), rgba(40, 40, 40, 0.8));
             box-shadow: 0 0 20px rgba(64, 224, 208, 0.3);
+        }
+
+        .song-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .difficulty-btn {
+            padding: 8px 16px;
+            background: linear-gradient(145deg, rgba(60, 60, 60, 0.8), rgba(40, 40, 40, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .difficulty-btn:hover {
+            background: linear-gradient(145deg, rgba(80, 80, 80, 0.8), rgba(60, 60, 60, 0.8));
+            border-color: rgba(64, 224, 208, 0.4);
+        }
+
+        .difficulty-btn.selected {
+            background: linear-gradient(145deg, rgba(64, 224, 208, 0.8), rgba(64, 224, 208, 0.6));
+            border-color: rgba(64, 224, 208, 0.8);
+            color: #000000;
+            box-shadow: 0 0 10px rgba(64, 224, 208, 0.3);
+        }
+
+        .difficulty-btn.easy {
+            border-color: rgba(76, 175, 80, 0.5);
+        }
+
+        .difficulty-btn.normal {
+            border-color: rgba(255, 193, 7, 0.5);
+        }
+
+        .difficulty-btn.hard {
+            border-color: rgba(255, 152, 0, 0.5);
+        }
+
+        .difficulty-btn.expert {
+            border-color: rgba(244, 67, 54, 0.5);
+        }
+
+        .difficulty-btn.master {
+            border-color: rgba(156, 39, 176, 0.5);
         }
 
         .song-info h3 {
@@ -947,27 +1007,7 @@
                 <h2 style="text-align: center; margin-bottom: 30px; color: #40e0d0; font-size: 32px; text-shadow: 0 0 10px rgba(64, 224, 208, 0.8);">🎵 楽曲選択 🎵</h2>
                 
                 <div class="song-list" id="songList">
-                    <div class="song-item" data-song="pipipipi_soda">
-                        <div class="song-info">
-                            <h3>ぴぴぴソーダ</h3>
-                            <p>Artist: pa9wo</p>
-                            <p>Duration: 3:31 | BPM: 150</p>
-                        </div>
-                        <div class="song-preview">
-                            <div class="difficulty-indicator">★★★☆☆</div>
-                        </div>
-                    </div>
-                    
-                    <div class="song-item" data-song="antithesis">
-                        <div class="song-info">
-                            <h3>Antithesis</h3>
-                            <p>Artist: pa9wo</p>
-                            <p>Duration: 2:09 | BPM: 130</p>
-                        </div>
-                        <div class="song-preview">
-                            <div class="difficulty-indicator">★★★★★</div>
-                        </div>
-                    </div>
+                    <!-- 楽曲リストは動的に生成される -->
                 </div>
                 
                 <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
